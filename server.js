@@ -16,6 +16,18 @@ const pool = new Pool({
   ssl: process.env.DATABASE_URL ? { rejectUnauthorized: false } : false,
 });
 
+console.log("DATABASE_URL existe:", !!process.env.DATABASE_URL);
+
+(async () => {
+  try {
+    const c = await pool.connect();
+    console.log("✅ Conectado a PostgreSQL");
+    c.release();
+  } catch (e) {
+    console.error("❌ Error de conexión al iniciar:", e.message);
+  }
+})();
+
 (async () => {
   try {
     const c = await pool.connect();
