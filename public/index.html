@@ -27,7 +27,8 @@
       --radius:20px;
       --green-cell:rgba(57,255,111,.20);
       --blue-cell:rgba(59,130,246,.22);
-      --sidebar-w:220px;
+      --sidebar-w:210px;
+      --ui-scale: 0.97;
     }
 
     html,body{
@@ -35,14 +36,18 @@
     }
 
     body{
-      font-family:Arial, Helvetica, sans-serif;
-      background:
-        linear-gradient(180deg, rgba(17,24,39,.92), rgba(11,18,32,.98)),
-        radial-gradient(circle at top right, rgba(59,130,246,.12), transparent 28%),
-        radial-gradient(circle at top left, rgba(57,255,111,.08), transparent 22%),
-        #0b1220;
-      color:var(--text);
-    }
+  margin:0;
+  font-family:Inter, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+  background:linear-gradient(180deg,#0b1220 0%, #0a1020 100%);
+  color:var(--text);
+  overflow-x:hidden;
+}
+.ui-scale-wrap{
+  transform: scale(var(--ui-scale));
+  transform-origin: top left;
+  width: calc(100% / var(--ui-scale));
+  min-height: calc(100vh / var(--ui-scale));
+}
 
     .app-shell{
   display:flex;
@@ -649,7 +654,8 @@
   </style>
 </head>
 <body>
-  <div class="app-shell">
+  <div class="ui-scale-wrap">
+      <div class="app-shell">
 
     <aside class="sidebar">
       <div class="brand">
@@ -911,7 +917,7 @@
       </div>
     </main>
   </div>
+  </div>
 
   <script src="app.js"></script>
 </body>
-</html>
