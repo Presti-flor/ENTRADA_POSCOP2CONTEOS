@@ -1,0 +1,17 @@
+{
+  "name": "poscosecha-p1",
+  "version": "1.0.0",
+  "description": "Sistema de registro y re-registro con serial de 9 dígitos",
+  "main": "index.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "dotenv": "^17.3.1",
+    "express": "^5.2.1",
+    "pg": "^8.20.0"
+  }
+}

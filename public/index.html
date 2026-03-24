@@ -1,0 +1,703 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Ingreso Tabacos P2 - Poscosecha</title>
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0}
+
+    :root{
+      --bg:#e8eef6;
+      --card:#f6f9fc;
+      --line:#d7e1ec;
+      --text:#1f2937;
+      --muted:#6b7280;
+      --primary:#2563eb;
+      --ok:#15803d;
+      --warn:#b45309;
+      --error:#b91c1c;
+      --ok-soft:#dcfce7;
+      --warn-soft:#fef3c7;
+      --error-soft:#fee2e2;
+      --shadow:0 10px 28px rgba(15,23,42,.08);
+      --radius:18px;
+      --green-cell:#a8d080;
+      --blue-cell:#34ed14;
+    }
+
+    body{
+      font-family:Arial, Helvetica, sans-serif;
+      background:linear-gradient(180deg,#dde7f2 0%,#eef3f9 100%);
+      color:var(--text);
+      padding:24px;
+    }
+
+    .container{
+      max-width:1500px;
+      margin:0 auto;
+    }
+
+    .header{
+      margin-bottom:22px;
+    }
+
+    .header h1{
+      font-size:2rem;
+      margin-bottom:6px;
+    }
+
+    .top-layout{
+      display:grid;
+      grid-template-columns: 0.95fr 1.65fr;
+      gap:18px;
+      align-items:start;
+    }
+
+    .top-left,
+    .top-right{
+      min-width:0;
+    }
+
+    .resumen-tabla{
+      margin-top:10px;
+      display:flex;
+      justify-content:flex-end;
+    }
+
+    .resumen-tabla .table-wrap{
+      width:420px;
+    }
+
+    .viajes-grid.compacta{
+      grid-template-columns:repeat(4, minmax(70px, 1fr));
+      gap:8px;
+    }
+
+    .viajes-grid.compacta .btn-viaje{
+      padding:8px 10px;
+      font-size:.82rem;
+      border-radius:8px;
+      min-height:38px;
+    }
+
+    .resumen-compacto{
+      grid-template-columns:1.15fr 1fr 1fr 1fr 1fr;
+      gap:10px;
+    }
+
+    .resumen-compacto .hero-big{
+      min-height:145px;
+      padding:18px;
+    }
+
+    .resumen-compacto .hero-big .value{
+      font-size:3.6rem;
+    }
+
+    .resumen-compacto .mini-stat{
+      min-height:145px;
+      padding:16px 12px;
+    }
+
+    .escaneo-card{
+      margin-top:4px;
+    }
+
+    .alerta-duplicados{
+      background:#f7ff15 !important;
+      border:2px solid #f59e0b !important;
+    }
+
+    .alerta-duplicados .label,
+    .alerta-duplicados .value{
+      color:#92400e !important;
+    }
+
+    .alerta-errores{
+      background:#fecaca !important;
+      border:2px solid #dc2626 !important;
+    }
+
+    .alerta-errores .label,
+    .alerta-errores .value{
+      color:#991b1b !important;
+    }
+
+    .card{
+      background:var(--card);
+      border:1px solid var(--line);
+      border-radius:var(--radius);
+      box-shadow:var(--shadow);
+      padding:22px;
+      margin-bottom:20px;
+    }
+
+    .card h2{
+      font-size:1.2rem;
+      margin-bottom:18px;
+    }
+
+    .grid-2{
+      display:grid;
+      grid-template-columns:repeat(2,1fr);
+      gap:14px;
+    }
+
+    .grid-3{
+      display:grid;
+      grid-template-columns:repeat(3,1fr);
+      gap:14px;
+    }
+
+    .grid-4{
+      display:grid;
+      grid-template-columns:repeat(4,1fr);
+      gap:14px;
+    }
+
+    .field{
+      display:flex;
+      flex-direction:column;
+      gap:6px;
+    }
+
+    .field label{
+      font-size:.92rem;
+      font-weight:700;
+    }
+
+    .field input,
+    .field select{
+      width:100%;
+      padding:12px 14px;
+      border:1px solid var(--line);
+      border-radius:12px;
+      font-size:1rem;
+      outline:none;
+      background:#fcfeff;
+    }
+
+    .actions{
+      display:flex;
+      gap:12px;
+      margin-top:16px;
+      flex-wrap:wrap;
+    }
+
+    button{
+      border:none;
+      border-radius:999px;
+      padding:10px 16px;
+      font-weight:700;
+      cursor:pointer;
+      font-size:.92rem;
+    }
+
+    .btn-primary{
+      background:var(--primary);
+      color:#fff;
+    }
+
+    .btn-danger{
+      background:#dc2626;
+      color:#fff;
+    }
+
+    .btn-delete{
+      background:#991b1b;
+      color:#fff;
+      padding:7px 12px;
+      font-size:.82rem;
+    }
+
+    .scan-box{
+      border:2px dashed #93c5fd;
+      background:#edf5ff;
+      border-radius:18px;
+      padding:22px;
+    }
+
+    .scan-input{
+      font-size:1.45rem !important;
+      font-weight:800;
+      text-align:center;
+      letter-spacing:.06em;
+      padding:20px 16px !important;
+      background:#fcfeff !important;
+    }
+
+    .status-bar{
+      margin-top:16px;
+      padding:14px 16px;
+      border-radius:14px;
+      font-weight:700;
+      font-size:1rem;
+    }
+
+    .status-neutral{background:#e7eef6;color:#374151}
+    .status-ok{background:var(--ok-soft);color:var(--ok)}
+    .status-warn{background:var(--warn-soft);color:var(--warn)}
+    .status-error{background:var(--error-soft);color:var(--error)}
+
+    .hero-stats{
+      display:grid;
+      grid-template-columns:1.2fr 1fr 1fr 1fr 1fr;
+      gap:14px;
+      align-items:stretch;
+    }
+
+    .hero-big{
+      background:linear-gradient(135deg,#1d4ed8,#3b82f6);
+      color:#fff;
+      border-radius:22px;
+      padding:22px;
+      min-height:190px;
+      display:flex;
+      flex-direction:column;
+      justify-content:center;
+    }
+
+    .hero-big .label{
+      font-size:1rem;
+      letter-spacing:.06em;
+      opacity:.9;
+      font-weight:700;
+      margin-bottom:12px;
+      text-transform:uppercase;
+    }
+
+    .hero-big .value{
+      font-size:5rem;
+      line-height:1;
+      font-weight:900;
+      margin-bottom:10px;
+    }
+
+    .hero-big .sub{
+      font-size:.95rem;
+      opacity:.92;
+    }
+
+    .mini-stat{
+      border-radius:18px;
+      padding:20px 16px;
+      text-align:center;
+      background:#eef4fa;
+      border:1px solid var(--line);
+      min-height:190px;
+      display:flex;
+      flex-direction:column;
+      justify-content:center;
+    }
+
+    .mini-stat .label{
+      font-size:.92rem;
+      color:var(--muted);
+      margin-bottom:10px;
+      font-weight:800;
+    }
+
+    .mini-stat .value{
+      font-size:2rem;
+      font-weight:900;
+    }
+
+    .table-wrap{
+      overflow-x:auto;
+      border-radius:14px;
+      border:1px solid var(--line);
+      background:#fcfeff;
+    }
+
+    table{
+      width:100%;
+      border-collapse:collapse;
+      background:#fcfeff;
+    }
+
+    thead{
+      background:#e9eff6;
+    }
+
+    th, td{
+      padding:12px 10px;
+      text-align:left;
+      font-size:.94rem;
+      border-bottom:1px solid var(--line);
+      white-space:nowrap;
+      vertical-align:top;
+    }
+
+    th{
+      font-weight:800;
+      color:#374151;
+    }
+
+    .cell-green{
+      background:var(--green-cell);
+      font-weight:800;
+      text-align:center;
+    }
+
+    .cell-blue{
+      background:var(--blue-cell);
+      font-weight:800;
+      text-align:center;
+    }
+
+    .badge{
+      display:inline-block;
+      padding:6px 10px;
+      border-radius:999px;
+      font-size:.78rem;
+      font-weight:800;
+    }
+
+    .badge-ok{background:var(--ok-soft);color:var(--ok)}
+    .badge-dup{background:var(--warn-soft);color:var(--warn)}
+    .badge-bad{background:var(--error-soft);color:var(--error)}
+
+    .empty-row{
+      color:var(--muted);
+      text-align:center;
+      padding:20px;
+      font-style:italic;
+    }
+
+    .ya-registrado-panel{
+      background:#fff8e8;
+      border:1px solid #f5d48a;
+      border-radius:16px;
+      padding:16px;
+    }
+
+    .ya-registrado-panel h3{
+      margin-bottom:10px;
+      color:#9a5800;
+    }
+
+    .ya-registrado-item{
+      padding:10px 12px;
+      border-radius:12px;
+      background:#fffdf7;
+      border:1px solid #f5e1a8;
+      margin-bottom:8px;
+      font-size:.92rem;
+    }
+
+    .viajes-grid{
+      display:grid;
+      grid-template-columns:repeat(auto-fill,minmax(120px,1fr));
+      gap:10px;
+      margin-top:10px;
+    }
+
+    .btn-viaje{
+      padding:14px;
+      border-radius:10px;
+      border:none;
+      font-weight:bold;
+      cursor:pointer;
+      background:#e5e7eb;
+      transition:.2s;
+      text-align:center;
+    }
+
+    .btn-viaje:hover{
+      background:#d1d5db;
+    }
+
+    .btn-viaje.activo{
+      background:#16a34a;
+      color:white;
+    }
+
+    .btn-finalizar{
+      background:#dc2626;
+      color:white;
+      border:none;
+      padding:10px 16px;
+      border-radius:8px;
+      cursor:pointer;
+    }
+
+    @media (max-width:1200px){
+      .top-layout{
+        grid-template-columns:1fr;
+      }
+
+      .resumen-compacto{
+        grid-template-columns:1fr 1fr;
+      }
+
+      .grid-2,.grid-3,.grid-4,.hero-stats{
+        grid-template-columns:1fr 1fr;
+      }
+    }
+
+    @media (max-width:700px){
+      body{padding:14px}
+
+      .viajes-grid.compacta{
+        grid-template-columns:repeat(3, minmax(70px, 1fr));
+      }
+
+      .resumen-compacto{
+        grid-template-columns:1fr;
+      }
+
+      .grid-2,.grid-3,.grid-4,.hero-stats{
+        grid-template-columns:1fr;
+      }
+
+      .hero-big .value{
+        font-size:3.5rem;
+      }
+
+      .resumen-compacto .hero-big .value{
+        font-size:3rem;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+
+    <div class="header">
+      <h1>INGRESO TABACOS P2 - POSCOSECHA</h1>
+    </div>
+
+    <section class="card">
+      <div class="top-layout">
+
+        <div class="top-left">
+          <h2>Viaje activo</h2>
+
+          <div class="field">
+            <label>Seleccionar viaje</label>
+            <div id="viajes-botones" class="viajes-grid compacta"></div>
+          </div>
+
+          <div style="margin-top:10px;">
+            <button id="finalizar-viaje-btn" class="btn-finalizar">Finalizar viaje</button>
+          </div>
+        </div>
+
+        <div class="top-right">
+          <h2>Resumen del viaje</h2>
+
+          <div class="hero-stats resumen-compacto">
+            <div class="hero-big">
+              <div class="label">Tabacos del viaje actual</div>
+              <div id="total-escaneados" class="value">0</div>
+              <div class="sub">Total correcto del viaje activo</div>
+            </div>
+
+            <div class="mini-stat">
+              <div class="label">Viaje activo</div>
+              <div id="viaje-activo-label" class="value" style="font-size:1.2rem;">Sin viaje</div>
+            </div>
+
+            <div class="mini-stat" id="card-duplicados">
+              <div class="label">Ya registrados</div>
+              <div id="total-duplicados" class="value">0</div>
+            </div>
+
+            <div class="mini-stat" id="card-errores">
+              <div class="label">Errores</div>
+              <div id="total-errores" class="value">0</div>
+            </div>
+
+            <div class="mini-stat">
+              <div class="label">Acumulado total del Viaje Seleccionado</div>
+              <div id="total-acumulado-general" class="value">0</div>
+            </div>
+          </div>
+
+          <div class="resumen-tabla">
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Variedad</th>
+                    <th>TABACOS</th>
+                    <th>Total Tallos</th>
+                  </tr>
+                </thead>
+                <tbody id="resumen-variedad-body">
+                  <tr>
+                    <td colspan="3" class="empty-row">Sin registros por variedad.</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <section class="card escaneo-card">
+      <h2>Escaneo en vivo</h2>
+      <div class="scan-box">
+        <div class="field">
+          <label for="barcode">Barcode</label>
+          <input class="scan-input" type="text" id="barcode" placeholder="Escanea o escribe el código manualmente">
+        </div>
+
+        <div id="status-bar" class="status-bar status-neutral">
+          Último estado: listo para escanear.
+        </div>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>Consulta general del sistema</h2>
+
+      <div class="grid-4">
+        <div class="mini-stat">
+          <div class="label">Total Tabacos registrados hoy</div>
+          <div id="contador-general-bd" class="value">0</div>
+        </div>
+
+        <div class="mini-stat">
+          <div class="label">Total tallos hoy</div>
+          <div id="contador-tallos-general-bd" class="value">0</div>
+        </div>
+
+        <div class="field">
+          <label for="bloque-general-select">Consultar bloque</label>
+          <select id="bloque-general-select">
+            <option value="">Seleccionar bloque</option>
+          </select>
+        </div>
+
+        <div class="field">
+          <label for="variedad-general-select">Consultar variedad</label>
+          <select id="variedad-general-select">
+            <option value="">Seleccionar variedad</option>
+          </select>
+        </div>
+      </div>
+
+      <div style="margin-top:18px;" class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Bloque</th>
+              <th>Variedad</th>
+              <th>Tamaño</th>
+              <th>Tallos</th>
+              <th>Etapa</th>
+              <th>TABACOS</th>
+              <th>Suma de Tallos</th>
+            </tr>
+          </thead>
+          <tbody id="general-bloque-body">
+            <tr>
+              <td colspan="7" class="empty-row">Selecciona un bloque o variedad para consultar.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div style="margin-top:18px;" class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Fecha / Hora</th>
+              <th>Barcode</th>
+              <th>Tipo</th>
+              <th>Serial</th>
+              <th>Variedad</th>
+              <th>Bloque</th>
+              <th>Tamaño</th>
+              <th>Tallos</th>
+              <th>Etapa</th>
+              <th>Form</th>
+              <th>Origen</th>
+              <th>Re-registro</th>
+              <th>Acción</th>
+            </tr>
+          </thead>
+          <tbody id="general-bloque-detalle-body">
+            <tr>
+              <td colspan="13" class="empty-row">Sin datos para mostrar.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>Códigos ya registrados</h2>
+      <div id="ya-registrados-panel" class="ya-registrado-panel">
+        <h3>Últimos ya registrados</h3>
+        <div id="ya-registrados-lista">
+          <div class="ya-registrado-item">Sin novedades.</div>
+        </div>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>Tabla dinámica de registros</h2>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Bloque</th>
+              <th>Variedad</th>
+              <th>Tamaño</th>
+              <th>Tallos</th>
+              <th>Etapa</th>
+              <th>TABACOS</th>
+              <th>Suma de Tallos</th>
+              <th>Form</th>
+            </tr>
+          </thead>
+          <tbody id="pivot-body">
+            <tr>
+              <td colspan="8" class="empty-row">Sin datos para mostrar.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>Detalle de registros escaneados</h2>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Fecha / Hora</th>
+              <th>Viaje</th>
+              <th>Barcode</th>
+              <th>Tipo</th>
+              <th>Serial</th>
+              <th>Bloque</th>
+              <th>Variedad</th>
+              <th>Tamaño</th>
+              <th>Tallos</th>
+              <th>Etapa</th>
+              <th>Form</th>
+              <th>Resultado</th>
+              <th>Observación</th>
+              <th>Acción</th>
+            </tr>
+          </thead>
+          <tbody id="detalle-body">
+            <tr>
+              <td colspan="14" class="empty-row">Sin registros todavía.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
