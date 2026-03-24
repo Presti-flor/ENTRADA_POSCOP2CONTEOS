@@ -3,353 +3,499 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Ingreso Tabacos P2 - Poscosecha</title>
+  <title>INGRESO RECEPCION POSCO - P2</title>
   <style>
     *{box-sizing:border-box;margin:0;padding:0}
 
     :root{
-  --bg:#edf3f9;
-  --card:#ffffff;
-  --line:#d9e3ee;
-  --text:#1e293b;
-  --muted:#64748b;
-  --primary:#2563eb;
-  --primary-soft:#dbeafe;
-  --ok:#15803d;
-  --warn:#b45309;
-  --error:#b91c1c;
-  --ok-soft:#dcfce7;
-  --warn-soft:#fef3c7;
-  --error-soft:#fee2e2;
-  --shadow:0 8px 22px rgba(15,23,42,.07);
-  --radius:18px;
-  --green-cell:#b7d78d;
-  --blue-cell:#39ef11;
-}
+      --bg:#0b1220;
+      --bg-2:#0f172a;
+      --panel:#111827;
+      --panel-2:#172033;
+      --panel-3:#1e293b;
+      --line:#253247;
+      --text:#e5eefc;
+      --muted:#94a3b8;
+      --primary:#3b82f6;
+      --ok:#39ff6f;
+      --ok-soft:rgba(57,255,111,.12);
+      --warn:#facc15;
+      --warn-soft:rgba(250,204,21,.14);
+      --error:#f87171;
+      --error-soft:rgba(248,113,113,.14);
+      --shadow:0 12px 30px rgba(0,0,0,.28);
+      --radius:20px;
+      --green-cell:rgba(57,255,111,.20);
+      --blue-cell:rgba(59,130,246,.22);
+      --sidebar-w:220px;
+    }
+
+    html,body{
+      min-height:100%;
+    }
 
     body{
-  font-family:Arial, Helvetica, sans-serif;
-  background:linear-gradient(180deg,#e9f0f7 0%,#f4f7fb 100%);
-  color:var(--text);
-  padding:18px;
+      font-family:Arial, Helvetica, sans-serif;
+      background:
+        linear-gradient(180deg, rgba(17,24,39,.92), rgba(11,18,32,.98)),
+        radial-gradient(circle at top right, rgba(59,130,246,.12), transparent 28%),
+        radial-gradient(circle at top left, rgba(57,255,111,.08), transparent 22%),
+        #0b1220;
+      color:var(--text);
+    }
+
+    .app-shell{
+  display:flex;
+  min-height:100vh;
+  width:100%;
+  overflow-x:hidden;
 }
+
+    .sidebar{
+  width:var(--sidebar-w);
+  min-width:var(--sidebar-w);
+  background:linear-gradient(180deg,#111827 0%, #0f172a 100%);
+  border-right:1px solid rgba(255,255,255,.06);
+  padding:16px 12px;
+  position:sticky;
+  top:0;
+  height:100vh;
+  overflow-y:auto;
+}
+
+    .brand{
+      display:flex;
+      align-items:center;
+      gap:12px;
+      padding:12px 14px 18px;
+      border-bottom:1px solid rgba(255,255,255,.06);
+      margin-bottom:18px;
+    }
+
+    .brand-icon{
+      width:34px;
+      height:34px;
+      border-radius:10px;
+      background:linear-gradient(135deg,#2563eb,#1d4ed8);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      font-weight:900;
+      color:#fff;
+      box-shadow:0 8px 18px rgba(37,99,235,.28);
+    }
+
+    .brand-title{
+  font-size:1.5rem;
+  font-weight:800;
+  color:#f8fafc;
+}
+
+    .nav{
+      display:flex;
+      flex-direction:column;
+      gap:8px;
+      margin-top:8px;
+    }
+
+    .nav a{
+      text-decoration:none;
+      color:#cbd5e1;
+      padding:14px 14px;
+      border-radius:14px;
+      background:transparent;
+      border:1px solid transparent;
+      transition:.18s ease;
+      font-weight:700;
+      display:block;
+    }
+
+    .nav a:hover{
+      background:rgba(59,130,246,.10);
+      border-color:rgba(59,130,246,.18);
+      color:#eff6ff;
+    }
+
+    .nav a.active{
+      background:rgba(59,130,246,.18);
+      border-color:rgba(59,130,246,.24);
+      color:#93c5fd;
+      box-shadow:inset 0 0 0 1px rgba(255,255,255,.03);
+    }
+
+    .main{
+  flex:1;
+  padding:16px;
+  min-width:0;
+  width:calc(100% - var(--sidebar-w));
+  overflow-x:hidden;
+}
+
+    .topbar{
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      margin-bottom:18px;
+      padding:8px 4px 14px;
+    }
+
+    .page-title{
+      font-size:1.95rem;
+      font-weight:900;
+      letter-spacing:-.02em;
+      color:#f8fafc;
+    }
+
+    .page-sub{
+      margin-top:4px;
+      color:var(--muted);
+      font-size:.95rem;
+    }
 
     .container{
-      max-width:1500px;
-      margin:0 auto;
-    }
-
-    .header{
-      margin-bottom:22px;
-    }
-
-    .header h1{
-      font-size:2rem;
-      margin-bottom:6px;
-    }
-
-    .top-layout{
-  display:grid;
-  grid-template-columns: 0.85fr 1.75fr;
-  gap:20px;
-  align-items:start;
+  width:100%;
+  max-width:100%;
+  margin:0 auto;
+  min-width:0;
 }
 
-    .top-left,
-    .top-right{
-      min-width:0;
+    .card{
+      background:linear-gradient(180deg,rgba(17,24,39,.96),rgba(15,23,42,.96));
+      border:1px solid rgba(255,255,255,.06);
+      border-radius:24px;
+      box-shadow:var(--shadow);
+      padding:20px;
+      margin-bottom:18px;
+      backdrop-filter:blur(8px);
     }
 
-    .resumen-tabla{
-      margin-top:14px;
-      display:flex;
-      justify-content:flex-end;
+    .card h2{
+      font-size:1.16rem;
+      margin-bottom:14px;
+      color:#f8fafc;
     }
 
-    .resumen-tabla .table-wrap{
-       width:420px;
-       border-radius: 18px;
+    .dashboard{
+  display:grid;
+  grid-template-columns:minmax(320px, 430px) minmax(0, 1fr);
+  gap:18px;
+  align-items:start;
+  margin-bottom:18px;
+  min-width:0;
+}
+
+    .left-stack{
+  display:flex;
+  flex-direction:column;
+  gap:18px;
+  min-width:0;
+}
+
+    .right-stack{
+  display:flex;
+  flex-direction:column;
+  gap:18px;
+  min-width:0;
+}
+
+    .travel-card{
+      position:relative;
+      overflow:hidden;
+      border:1px solid rgba(57,255,111,.26);
+      box-shadow:0 0 0 1px rgba(57,255,111,.08), 0 0 26px rgba(57,255,111,.12);
     }
 
-    .viajes-grid.compacta{
-      grid-template-columns:repeat(4, minmax(70px, 1fr));
-      gap:8px;
+    .travel-card::after{
+      content:"";
+      position:absolute;
+      inset:0;
+      pointer-events:none;
+      border-radius:24px;
+      box-shadow:inset 0 0 30px rgba(57,255,111,.06);
     }
 
-    .viajes-grid.compacta .btn-viaje{
-      padding:8px 10px;
-      font-size:.82rem;
-      border-radius:8px;
-      min-height:38px;
+    .travel-label{
+      color:#cbd5e1;
+      font-size:1rem;
+      font-weight:800;
+      margin-bottom:8px;
+      letter-spacing:.04em;
+      text-transform:uppercase;
     }
 
-    .resumen-compacto{
-      grid-template-columns:1.15fr 1fr 1fr 1fr 1fr;
-      gap:10px;
+    .travel-value{
+  font-size:clamp(2.4rem, 4vw, 4.2rem);
+  font-weight:900;
+  line-height:1;
+  color:var(--ok);
+  text-shadow:0 0 10px rgba(57,255,111,.15);
+  min-height:68px;
+  word-break:break-word;
+}
+
+    .travel-sub{
+      margin-top:10px;
+      color:var(--muted);
+      font-size:.95rem;
     }
 
-    .resumen-compacto .hero-big{
-      min-height:145px;
-      padding:18px;
+    .hero-metrics{
+  display:grid;
+  grid-template-columns:repeat(3, minmax(180px, 1fr));
+  gap:14px;
+  min-width:0;
+  align-items:stretch;
+}
+
+    .metric-card{
+  background:linear-gradient(180deg,#151f31,#121b2c);
+  border:1px solid rgba(255,255,255,.06);
+  border-radius:22px;
+  padding:18px 16px;
+  min-height:140px;
+  display:flex;
+  flex-direction:column;
+  justify-content:center;
+  min-width:0;
+}
+
+    .metric-card.main{
+  background:linear-gradient(135deg,#1d4ed8,#2563eb 60%, #3b82f6);
+  color:#fff;
+  box-shadow:0 10px 26px rgba(37,99,235,.20);
+  overflow:hidden;
+  grid-column:1 / -1;
+  min-height:140px;
+}
+
+    .metric-label{
+  font-size:.88rem;
+  color:var(--muted);
+  font-weight:800;
+  margin-bottom:8px;
+  line-height:1.2;
+  text-transform:uppercase;
+  letter-spacing:.02em;
+  word-break:normal;
+  overflow-wrap:break-word;
+}
+
+    .metric-card.main .metric-label{
+      color:#dbeafe;
     }
 
-    .resumen-compacto .hero-big .value{
-      font-size:3.6rem;
+    .metric-value{
+  font-size:clamp(2rem, 3vw, 3rem);
+  font-weight:900;
+  line-height:1;
+  color:#f8fafc;
+  word-break:break-word;
+}
+
+    .metric-card.main .metric-value{
+      color:#fff;
     }
 
-    .resumen-compacto .mini-stat{
-      min-height:145px;
-      padding:16px 12px;
-    }
-
-    .escaneo-card{
-      margin-top:4px;
+    .metric-sub{
+      margin-top:8px;
+      color:#dbeafe;
+      font-size:.92rem;
     }
 
     .alerta-duplicados{
-      background:#f7ff15 !important;
-      border:2px solid #f59e0b !important;
+      background:linear-gradient(180deg, rgba(250,204,21,.18), rgba(250,204,21,.08)) !important;
+      border:1px solid rgba(250,204,21,.34) !important;
+      box-shadow:0 0 20px rgba(250,204,21,.10);
     }
 
-    .alerta-duplicados .label,
-    .alerta-duplicados .value{
-      color:#92400e !important;
+    .alerta-duplicados .metric-label,
+    .alerta-duplicados .metric-value{
+      color:#fde68a !important;
     }
 
     .alerta-errores{
-      background:#fecaca !important;
-      border:2px solid #dc2626 !important;
+      background:linear-gradient(180deg, rgba(248,113,113,.18), rgba(248,113,113,.08)) !important;
+      border:1px solid rgba(248,113,113,.34) !important;
+      box-shadow:0 0 20px rgba(248,113,113,.10);
     }
 
-    .alerta-errores .label,
-    .alerta-errores .value{
-      color:#991b1b !important;
+    .alerta-errores .metric-label,
+    .alerta-errores .metric-value{
+      color:#fecaca !important;
     }
 
-    .card{
-  background:var(--card);
-  border:1px solid var(--line);
-  border-radius:22px;
-  box-shadow:var(--shadow);
-  padding:20px;
-  margin-bottom:18px;
-}
-
-    .card h2{
-  font-size:1.15rem;
-  margin-bottom:14px;
-  color:#0f172a;
-}
-
-    .grid-2{
-      display:grid;
-      grid-template-columns:repeat(2,1fr);
-      gap:14px;
-    }
-
-    .grid-3{
-      display:grid;
-      grid-template-columns:repeat(3,1fr);
-      gap:14px;
-    }
-
-    .grid-4{
-      display:grid;
-      grid-template-columns:repeat(4,1fr);
-      gap:14px;
+    .scan-box{
+      border:1px solid rgba(57,255,111,.22);
+      background:linear-gradient(180deg,#0f172a,#0b1220);
+      border-radius:20px;
+      padding:18px;
+      box-shadow:inset 0 0 25px rgba(57,255,111,.05);
     }
 
     .field{
       display:flex;
       flex-direction:column;
-      gap:6px;
+      gap:8px;
     }
 
     .field label{
-      font-size:.92rem;
-      font-weight:700;
+      font-size:.95rem;
+      font-weight:800;
+      color:#e2e8f0;
     }
 
+    .scan-input,
     .field input,
     .field select{
       width:100%;
-      padding:12px 14px;
-      border:1px solid var(--line);
-      border-radius:12px;
-      font-size:1rem;
+      border-radius:16px;
+      border:1px solid rgba(57,255,111,.36);
+      background:#08111f;
+      color:#f8fafc;
+      padding:16px 16px;
       outline:none;
-      background:#fcfeff;
+      font-size:1rem;
+      box-shadow:0 0 0 1px rgba(57,255,111,.06), inset 0 0 12px rgba(57,255,111,.03);
     }
+
+    .scan-input{
+      font-size:1.3rem !important;
+      font-weight:900;
+      letter-spacing:.05em;
+    }
+
+    .status-bar{
+      margin-top:14px;
+      padding:12px 14px;
+      border-radius:14px;
+      font-weight:800;
+      font-size:.95rem;
+      border:1px solid rgba(255,255,255,.06);
+    }
+
+    .status-neutral{background:#182233;color:#cbd5e1}
+    .status-ok{background:var(--ok-soft);color:#86efac;border-color:rgba(57,255,111,.24)}
+    .status-warn{background:var(--warn-soft);color:#fde68a;border-color:rgba(250,204,21,.18)}
+    .status-error{background:var(--error-soft);color:#fecaca;border-color:rgba(248,113,113,.18)}
 
     .actions{
       display:flex;
       gap:12px;
-      margin-top:16px;
       flex-wrap:wrap;
     }
 
     button{
       border:none;
-      border-radius:999px;
-      padding:10px 16px;
-      font-weight:700;
+      border-radius:14px;
+      padding:11px 16px;
+      font-weight:800;
       cursor:pointer;
       font-size:.92rem;
+      transition:.18s ease;
+    }
+
+    .btn-finalizar{
+      background:linear-gradient(135deg,#dc2626,#ef4444);
+      color:#fff;
+      box-shadow:0 8px 20px rgba(220,38,38,.22);
+    }
+
+    .btn-finalizar:hover{
+      transform:translateY(-1px);
     }
 
     .btn-primary{
-      background:var(--primary);
+      background:linear-gradient(135deg,#2563eb,#3b82f6);
       color:#fff;
-    }
-
-    .btn-danger{
-      background:#dc2626;
-      color:#fff;
+      box-shadow:0 8px 20px rgba(37,99,235,.20);
     }
 
     .btn-delete{
-      background:#991b1b;
+      background:linear-gradient(135deg,#7f1d1d,#b91c1c);
       color:#fff;
-      padding:7px 12px;
+      padding:8px 12px;
       font-size:.82rem;
     }
 
-    .scan-box{
-      border:2px dashed #93c5fd;
-  background:#eff6ff;
-  border-radius:18px;
-  padding:16px;
-    }
-
-    .scan-input{
-       font-size:1.2rem !important;
-  font-weight:800;
-  text-align:center;
-  letter-spacing:.05em;
-  padding:16px 14px !important;
-  background:#ffffff !important;
-    }
-
-    .status-bar{
-  margin-top:14px;
-  padding:12px 14px;
-  border-radius:14px;
-  font-weight:800;
-  font-size:.96rem;
-}
-
-    .status-neutral{background:#e7eef6;color:#374151}
-    .status-ok{background:var(--ok-soft);color:var(--ok)}
-    .status-warn{background:var(--warn-soft);color:var(--warn)}
-    .status-error{background:var(--error-soft);color:var(--error)}
-
-    .hero-stats{
+    .travel-selector-card .viajes-grid{
       display:grid;
-      grid-template-columns:1.2fr 1fr 1fr 1fr 1fr;
-      gap:14px;
-      align-items:stretch;
+      grid-template-columns:repeat(4, minmax(72px, 1fr));
+      gap:10px;
+      margin-top:8px;
     }
 
-    .hero-big{
-      background:linear-gradient(135deg,#1d4ed8,#3b82f6);
-  color:#fff;
-  border-radius:24px;
-  padding:18px;
-  min-height:150px;
-  display:flex;
-  flex-direction:column;
-  justify-content:center;
-  box-shadow:0 12px 26px rgba(37,99,235,.20);
+    .btn-viaje{
+      border-radius:14px;
+      border:1px solid rgba(255,255,255,.08);
+      background:#172233;
+      color:#e5eefc;
+      min-height:46px;
+      font-weight:900;
+      box-shadow:inset 0 0 0 1px rgba(255,255,255,.02);
     }
 
-    .hero-big .label{
-      font-size:.95rem;
-  letter-spacing:.05em;
-  opacity:.95;
-  font-weight:800;
-  margin-bottom:10px;
-  text-transform:uppercase;
+    .btn-viaje:hover{
+      background:#1f2c40;
     }
 
-    .hero-big .value{
-       font-size:3.8rem;
-  line-height:1;
-  font-weight:900;
-  margin-bottom:8px;
-    }
-
-    .hero-big .sub{
-      font-size:.95rem;
-      opacity:.95;
-    }
-
-    .mini-stat{
-      border-radius:18px;
-      padding:20px 16px;
-      text-align:center;
-      background:#eef4fa;
-      border:1px solid var(--line);
-      min-height:190px;
-      display:flex;
-      flex-direction:column;
-      justify-content:center;
-    }
-
-    .mini-stat .label{
-      font-size:.9rem;
-  color:var(--muted);
-  margin-bottom:8px;
-  font-weight:800;
-  line-height:1.25;
-    }
-
-    .mini-stat .value{
-      font-size:2.2rem;
-  font-weight:900;
-  color:#0f172a;
+    .btn-viaje.activo{
+      background:linear-gradient(135deg,#16a34a,#22c55e);
+      color:#fff;
+      border-color:rgba(57,255,111,.30);
+      box-shadow:0 8px 18px rgba(34,197,94,.20);
     }
 
     .table-wrap{
-      overflow-x:auto;
-  border-radius:16px;
-  border:1px solid var(--line);
-  background:#fff;
-    }
+  width:100%;
+  max-width:100%;
+  overflow-x:auto;
+  overflow-y:hidden;
+  border-radius:18px;
+  border:1px solid rgba(57,255,111,.18);
+  background:linear-gradient(180deg,#0f172a,#0b1220);
+}
 
     table{
-      width:100%;
-      border-collapse:collapse;
-      background:#fcfeff;
-    }
+  width:100%;
+  min-width:max-content;
+  border-collapse:collapse;
+  background:transparent;
+}
 
     thead{
-      background:#e9eff6;
+      background:rgba(57,255,111,.08);
     }
 
     th, td{
       padding:12px 10px;
       text-align:left;
-      font-size:.94rem;
-      border-bottom:1px solid var(--line);
+      font-size:.92rem;
+      border-bottom:1px solid rgba(255,255,255,.06);
       white-space:nowrap;
-      vertical-align:top;
+      vertical-align:middle;
     }
 
     th{
       font-weight:800;
-      color:#374151;
+      color:#86efac;
+    }
+
+    tbody tr:hover{
+      background:rgba(255,255,255,.03);
     }
 
     .cell-green{
       background:var(--green-cell);
       font-weight:800;
       text-align:center;
+      color:#d1fae5;
     }
 
     .cell-blue{
       background:var(--blue-cell);
       font-weight:800;
       text-align:center;
+      color:#dbeafe;
     }
 
     .badge{
@@ -360,9 +506,9 @@
       font-weight:800;
     }
 
-    .badge-ok{background:var(--ok-soft);color:var(--ok)}
-    .badge-dup{background:var(--warn-soft);color:var(--warn)}
-    .badge-bad{background:var(--error-soft);color:var(--error)}
+    .badge-ok{background:rgba(57,255,111,.12);color:#86efac}
+    .badge-dup{background:rgba(250,204,21,.12);color:#fde68a}
+    .badge-bad{background:rgba(248,113,113,.12);color:#fecaca}
 
     .empty-row{
       color:var(--muted);
@@ -371,343 +517,399 @@
       font-style:italic;
     }
 
+    .section-title{
+      margin-bottom:12px;
+      font-size:1rem;
+      color:#cbd5e1;
+      font-weight:800;
+    }
+
+    .grid-4{
+      display:grid;
+      grid-template-columns:repeat(4,1fr);
+      gap:14px;
+    }
+
+    .mini-stat{
+      border-radius:20px;
+      padding:18px;
+      text-align:left;
+      background:linear-gradient(180deg,#151f31,#121b2c);
+      border:1px solid rgba(255,255,255,.06);
+      min-height:124px;
+      display:flex;
+      flex-direction:column;
+      justify-content:center;
+    }
+
+    .mini-stat .label{
+      font-size:.9rem;
+      color:var(--muted);
+      margin-bottom:10px;
+      font-weight:800;
+      line-height:1.25;
+    }
+
+    .mini-stat .value{
+      font-size:2.6rem;
+      font-weight:900;
+      color:var(--ok);
+    }
+
     .ya-registrado-panel{
-      background:#fff8e8;
-      border:1px solid #f5d48a;
-      border-radius:16px;
+      background:linear-gradient(180deg,rgba(250,204,21,.08),rgba(250,204,21,.04));
+      border:1px solid rgba(250,204,21,.18);
+      border-radius:18px;
       padding:16px;
     }
 
     .ya-registrado-panel h3{
       margin-bottom:10px;
-      color:#9a5800;
+      color:#fde68a;
     }
 
     .ya-registrado-item{
       padding:10px 12px;
       border-radius:12px;
-      background:#fffdf7;
-      border:1px solid #f5e1a8;
+      background:rgba(255,255,255,.03);
+      border:1px solid rgba(250,204,21,.12);
       margin-bottom:8px;
       font-size:.92rem;
+      color:#e2e8f0;
     }
 
-    .viajes-grid{
-      display:grid;
-      grid-template-columns:repeat(auto-fill,minmax(120px,1fr));
-      gap:10px;
-      margin-top:10px;
+    .content-section{
+      margin-bottom:18px;
     }
 
-    .btn-viaje{
-      border-radius:12px;
-  border:1px solid #d8dee8;
-  font-weight:800;
-  cursor:pointer;
-  background:#f1f5f9;
-  color:#111827;
-  transition:.18s ease;
-  text-align:center;
-  min-height:42px;
-    }
+    @media (max-width:1350px){
+  .dashboard{
+    grid-template-columns:1fr;
+  }
 
-    .btn-viaje:hover{
-      background:#e2e8f0;
-  transform:translateY(-1px);
-    }
+  .hero-metrics{
+    grid-template-columns:1fr 1fr 1fr;
+  }
+}
 
-    .btn-viaje.activo{
-      background:#16a34a;
-  color:white;
-  border-color:#15803d;
-  box-shadow:0 8px 18px rgba(22,163,74,.22);
-    }
+@media (max-width:900px){
+  .hero-metrics{
+    grid-template-columns:1fr;
+  }
 
-    .btn-finalizar{
-      background:#dc2626;
-      color:white;
-      border:none;
-      padding:10px 16px;
-      border-radius:8px;
-      cursor:pointer;
-    }
+  .metric-card.main{
+    grid-column:auto;
+  }
+}
 
-    @media (max-width:1200px){
-      .top-layout{
-        grid-template-columns:1fr;
-      }
+@media (max-width:1100px){
+  .app-shell{
+    display:block;
+  }
 
-      .resumen-compacto{
-        grid-template-columns:1.2fr .9fr .9fr .9fr .95fr;
-  gap:12px;
-      }
+  .sidebar{
+    width:100%;
+    min-width:100%;
+    height:auto;
+    position:relative;
+    border-right:none;
+    border-bottom:1px solid rgba(255,255,255,.06);
+  }
 
-      .grid-2,.grid-3,.grid-4,.hero-stats{
-        grid-template-columns:1fr 1fr;
-      }
-    }
+  .nav{
+    display:grid;
+    grid-template-columns:repeat(2, minmax(0, 1fr));
+  }
 
-    @media (max-width:700px){
-      body{padding:14px}
+  .main{
+    width:100%;
+    padding:14px;
+  }
 
-      .viajes-grid.compacta{
-        grid-template-columns:repeat(4, minmax(72px, 1fr));
-  gap:8px;
-      }
+  .grid-4{
+    grid-template-columns:repeat(2, minmax(0, 1fr));
+  }
+}
 
-      .resumen-compacto{
-        grid-template-columns:1fr;
-      }
+@media (max-width:760px){
+  .hero-metrics,
+  .grid-4,
+  .nav{
+    grid-template-columns:1fr;
+  }
 
-      .grid-2,.grid-3,.grid-4,.hero-stats{
-        grid-template-columns:1fr;
-      }
+  .travel-selector-card .viajes-grid{
+    grid-template-columns:repeat(2, minmax(72px, 1fr));
+  }
 
-      .hero-big .value{
-        font-size:3.5rem;
-      }
-
-      .resumen-compacto .hero-big .value{
-        font-size:3rem;
-      }
-    }
+  .page-title{
+    font-size:1.55rem;
+  }
+}
   </style>
 </head>
 <body>
-  <div class="container">
+  <div class="app-shell">
 
-    <div class="header">
-      <h1>INGRESO TABACOS P2 - POSCOSECHA</h1>
-    </div>
+    <aside class="sidebar">
+      <div class="brand">
+        <div class="brand-icon">P</div>
+        <div class="brand-title">Ingreso Recepción - P2</div>
+      </div>
 
-    <section class="card">
-      <div class="top-layout">
+      <nav class="nav">
+        <a href="#resumen" class="active">Resumen del viaje</a>
+        <a href="#escaneo">Escaneo en vivo</a>
+        <a href="#consulta">Consulta general</a>
+        <a href="#tabla-dinamica">Tabla dinámica</a>
+        <a href="#detalle">Detalle escaneado</a>
+        <a href="#duplicados">Ya registrados</a>
+      </nav>
+    </aside>
 
-        <div class="top-left">
-          <h2>Viaje activo</h2>
+    <main class="main">
+      <div class="container">
 
-          <div class="field">
-            <label>Seleccionar viaje</label>
-            <div id="viajes-botones" class="viajes-grid compacta"></div>
-          </div>
-
-          <div style="margin-top:10px;">
-            <button id="finalizar-viaje-btn" class="btn-finalizar">Finalizar viaje</button>
+        <div class="topbar">
+          <div>
+            <div class="page-title">REGISTROS POR VIAJE</div>
+            <div class="page-sub">Panel operativo de ingreso y consulta diaria</div>
           </div>
         </div>
 
-        <div class="top-right">
-          <h2>Resumen del viaje</h2>
+        <section class="dashboard" id="resumen">
 
-          <div class="hero-stats resumen-compacto">
-            <div class="hero-big">
-              <div class="label">Tabacos del viaje actual</div>
-              <div id="total-escaneados" class="value">0</div>
-              <div class="sub">Total correcto del viaje activo</div>
+          <div class="left-stack">
+            <section class="card travel-selector-card">
+              <h2>Viaje activo</h2>
+
+              <div class="travel-card card" style="margin-bottom:16px;">
+                <div class="travel-label">Viaje actual</div>
+                <div id="viaje-activo-label" class="travel-value">Sin viaje</div>
+                <div class="travel-sub">Selecciona un viaje para comenzar el ingreso</div>
+              </div>
+
+              <div class="field">
+                <label>Seleccionar viaje</label>
+                <div id="viajes-botones" class="viajes-grid"></div>
+              </div>
+
+              <div class="actions" style="margin-top:14px;">
+                <button id="finalizar-viaje-btn" class="btn-finalizar">Finalizar viaje</button>
+              </div>
+            </section>
+
+            <section class="card" id="escaneo">
+              <h2>Escaneo en vivo</h2>
+              <div class="scan-box">
+                <div class="field">
+                  <label for="barcode">Escanea o escribe código manualmente</label>
+                  <input class="scan-input" type="text" id="barcode" placeholder="Esperando escaneo...">
+                </div>
+
+                <div id="status-bar" class="status-bar status-neutral">
+                  Último estado: listo para escanear.
+                </div>
+              </div>
+            </section>
+          </div>
+
+          <div class="right-stack">
+            <section class="card">
+              <h2>Resumen del viaje</h2>
+
+              <div class="hero-metrics">
+                <div class="metric-card main">
+                  <div class="metric-label">Tabacos del viaje actual</div>
+                  <div id="total-escaneados" class="metric-value">0</div>
+                  <div class="metric-sub">Registrados en este viaje</div>
+                </div>
+
+                <div class="metric-card">
+                  <div class="metric-label">Ya registrados</div>
+                  <div id="total-duplicados" class="metric-value">0</div>
+                </div>
+
+                <div class="metric-card" id="card-errores">
+                  <div class="metric-label">Errores</div>
+                  <div id="total-errores" class="metric-value">0</div>
+                </div>
+
+                <div class="metric-card" id="card-duplicados">
+                  <div class="metric-label">Acumulado del viaje</div>
+                  <div id="total-acumulado-general" class="metric-value">0</div>
+                </div>
+              </div>
+
+              <div style="margin-top:16px;" class="table-wrap">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Variedad</th>
+                      <th>Tabacos</th>
+                      <th>Total tallos</th>
+                    </tr>
+                  </thead>
+                  <tbody id="resumen-variedad-body">
+                    <tr>
+                      <td colspan="3" class="empty-row">Sin registros por variedad.</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </section>
+
+            <section class="card">
+              <h2>Últimos registros escaneados</h2>
+              <div class="table-wrap">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Fecha / Hora</th>
+                      <th>Viaje</th>
+                      <th>Barcode</th>
+                      <th>Tipo</th>
+                      <th>Serial</th>
+                      <th>Bloque</th>
+                      <th>Variedad</th>
+                      <th>Tamaño</th>
+                      <th>Tallos</th>
+                      <th>Etapa</th>
+                      <th>Form</th>
+                      <th>Resultado</th>
+                      <th>Observación</th>
+                      <th>Acción</th>
+                    </tr>
+                  </thead>
+                  <tbody id="detalle-body">
+                    <tr>
+                      <td colspan="14" class="empty-row">Sin registros todavía.</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </section>
+          </div>
+
+        </section>
+
+        <section class="card content-section" id="consulta">
+          <h2>Consulta general del sistema</h2>
+
+          <div class="grid-4">
+            <div class="mini-stat">
+              <div class="label">Total tabacos registrados hoy</div>
+              <div id="contador-general-bd" class="value">0</div>
             </div>
 
             <div class="mini-stat">
-              <div class="label">Viaje activo</div>
-              <div id="viaje-activo-label" class="value" style="font-size:1.2rem;">Sin viaje</div>
+              <div class="label">Total tallos hoy</div>
+              <div id="contador-tallos-general-bd" class="value">0</div>
             </div>
 
-            <div class="mini-stat" id="card-duplicados">
-              <div class="label">Ya registrados</div>
-              <div id="total-duplicados" class="value">0</div>
+            <div class="field">
+              <label for="bloque-general-select">Consultar bloque</label>
+              <select id="bloque-general-select">
+                <option value="">Seleccionar bloque</option>
+              </select>
             </div>
 
-            <div class="mini-stat" id="card-errores">
-              <div class="label">Errores</div>
-              <div id="total-errores" class="value">0</div>
-            </div>
-
-            <div class="mini-stat">
-              <div class="label">Acumulado total del Viaje Seleccionado</div>
-              <div id="total-acumulado-general" class="value">0</div>
-            </div>
-          </div>
-
-          <div class="resumen-tabla">
-            <div class="table-wrap">
-              <table>
-                <thead>
-                  <tr>
-                    <th>Variedad</th>
-                    <th>TABACOS</th>
-                    <th>Total Tallos</th>
-                  </tr>
-                </thead>
-                <tbody id="resumen-variedad-body">
-                  <tr>
-                    <td colspan="3" class="empty-row">Sin registros por variedad.</td>
-                  </tr>
-                </tbody>
-              </table>
+            <div class="field">
+              <label for="variedad-general-select">Consultar variedad</label>
+              <select id="variedad-general-select">
+                <option value="">Seleccionar variedad</option>
+              </select>
             </div>
           </div>
-        </div>
+
+          <div class="section-title" style="margin-top:18px;">Resumen por filtro</div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Bloque</th>
+                  <th>Variedad</th>
+                  <th>Tamaño</th>
+                  <th>Tallos</th>
+                  <th>Etapa</th>
+                  <th>Tabacos</th>
+                  <th>Suma de tallos</th>
+                </tr>
+              </thead>
+              <tbody id="general-bloque-body">
+                <tr>
+                  <td colspan="7" class="empty-row">Selecciona un bloque o variedad para consultar.</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div class="section-title" style="margin-top:18px;">Detalle por filtro</div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Fecha / Hora</th>
+                  <th>Barcode</th>
+                  <th>Tipo</th>
+                  <th>Serial</th>
+                  <th>Variedad</th>
+                  <th>Bloque</th>
+                  <th>Tamaño</th>
+                  <th>Tallos</th>
+                  <th>Etapa</th>
+                  <th>Form</th>
+                  <th>Origen</th>
+                  <th>Re-registro</th>
+                  <th>Acción</th>
+                </tr>
+              </thead>
+              <tbody id="general-bloque-detalle-body">
+                <tr>
+                  <td colspan="13" class="empty-row">Sin datos para mostrar.</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <section class="card content-section" id="duplicados">
+          <h2>Códigos ya registrados</h2>
+          <div id="ya-registrados-panel" class="ya-registrado-panel">
+            <h3>Últimos ya registrados</h3>
+            <div id="ya-registrados-lista">
+              <div class="ya-registrado-item">Sin novedades.</div>
+            </div>
+          </div>
+        </section>
+
+        <section class="card content-section" id="tabla-dinamica">
+          <h2>Tabla dinámica de registros</h2>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Bloque</th>
+                  <th>Variedad</th>
+                  <th>Tamaño</th>
+                  <th>Tallos</th>
+                  <th>Etapa</th>
+                  <th>Tabacos</th>
+                  <th>Suma de tallos</th>
+                  <th>Form</th>
+                </tr>
+              </thead>
+              <tbody id="pivot-body">
+                <tr>
+                  <td colspan="8" class="empty-row">Sin datos para mostrar.</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
 
       </div>
-    </section>
-
-    <section class="card escaneo-card">
-      <h2>Escaneo en vivo</h2>
-      <div class="scan-box">
-        <div class="field">
-          <label for="barcode">Barcode</label>
-          <input class="scan-input" type="text" id="barcode" placeholder="Escanea o escribe el código manualmente">
-        </div>
-
-        <div id="status-bar" class="status-bar status-neutral">
-          Último estado: listo para escanear.
-        </div>
-      </div>
-    </section>
-
-    <section class="card">
-      <h2>Consulta general del sistema</h2>
-
-      <div class="grid-4">
-        <div class="mini-stat">
-          <div class="label">Total Tabacos registrados hoy</div>
-          <div id="contador-general-bd" class="value">0</div>
-        </div>
-
-        <div class="mini-stat">
-          <div class="label">Total tallos hoy</div>
-          <div id="contador-tallos-general-bd" class="value">0</div>
-        </div>
-
-        <div class="field">
-          <label for="bloque-general-select">Consultar bloque</label>
-          <select id="bloque-general-select">
-            <option value="">Seleccionar bloque</option>
-          </select>
-        </div>
-
-        <div class="field">
-          <label for="variedad-general-select">Consultar variedad</label>
-          <select id="variedad-general-select">
-            <option value="">Seleccionar variedad</option>
-          </select>
-        </div>
-      </div>
-
-      <div style="margin-top:18px;" class="table-wrap">
-        <table>
-          <thead>
-            <tr>
-              <th>Bloque</th>
-              <th>Variedad</th>
-              <th>Tamaño</th>
-              <th>Tallos</th>
-              <th>Etapa</th>
-              <th>TABACOS</th>
-              <th>Suma de Tallos</th>
-            </tr>
-          </thead>
-          <tbody id="general-bloque-body">
-            <tr>
-              <td colspan="7" class="empty-row">Selecciona un bloque o variedad para consultar.</td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-
-      <div style="margin-top:18px;" class="table-wrap">
-        <table>
-          <thead>
-            <tr>
-              <th>Fecha / Hora</th>
-              <th>Barcode</th>
-              <th>Tipo</th>
-              <th>Serial</th>
-              <th>Variedad</th>
-              <th>Bloque</th>
-              <th>Tamaño</th>
-              <th>Tallos</th>
-              <th>Etapa</th>
-              <th>Form</th>
-              <th>Origen</th>
-              <th>Re-registro</th>
-              <th>Acción</th>
-            </tr>
-          </thead>
-          <tbody id="general-bloque-detalle-body">
-            <tr>
-              <td colspan="13" class="empty-row">Sin datos para mostrar.</td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-    </section>
-
-    <section class="card">
-      <h2>Códigos ya registrados</h2>
-      <div id="ya-registrados-panel" class="ya-registrado-panel">
-        <h3>Últimos ya registrados</h3>
-        <div id="ya-registrados-lista">
-          <div class="ya-registrado-item">Sin novedades.</div>
-        </div>
-      </div>
-    </section>
-
-    <section class="card">
-      <h2>Tabla dinámica de registros</h2>
-      <div class="table-wrap">
-        <table>
-          <thead>
-            <tr>
-              <th>Bloque</th>
-              <th>Variedad</th>
-              <th>Tamaño</th>
-              <th>Tallos</th>
-              <th>Etapa</th>
-              <th>TABACOS</th>
-              <th>Suma de Tallos</th>
-              <th>Form</th>
-            </tr>
-          </thead>
-          <tbody id="pivot-body">
-            <tr>
-              <td colspan="8" class="empty-row">Sin datos para mostrar.</td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-    </section>
-
-    <section class="card">
-      <h2>Detalle de registros escaneados</h2>
-      <div class="table-wrap">
-        <table>
-          <thead>
-            <tr>
-              <th>Fecha / Hora</th>
-              <th>Viaje</th>
-              <th>Barcode</th>
-              <th>Tipo</th>
-              <th>Serial</th>
-              <th>Bloque</th>
-              <th>Variedad</th>
-              <th>Tamaño</th>
-              <th>Tallos</th>
-              <th>Etapa</th>
-              <th>Form</th>
-              <th>Resultado</th>
-              <th>Observación</th>
-              <th>Acción</th>
-            </tr>
-          </thead>
-          <tbody id="detalle-body">
-            <tr>
-              <td colspan="14" class="empty-row">Sin registros todavía.</td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-    </section>
-
+    </main>
   </div>
 
   <script src="app.js"></script>
