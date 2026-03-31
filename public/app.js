@@ -3,6 +3,7 @@ let cacheDetalle = [];
 let autoRefreshTimer = null;
 let scanBuffer = "";
 let scanTimer = null;
+let ultimoAcumulado = null;
 
 const SCAN_GAP_MS = 900;
 
@@ -641,7 +642,6 @@ async function refrescarResumen() {
     setText(totalEscaneados, okSesion + reregSesion);
     setText(totalDuplicados, duplicados);
     setText(totalErrores, errores);
-    setText(totalAcumuladoGeneral, okAcumulado + reregAcumulado);
 
     actualizarAlertasResumen(duplicados, errores);
   } catch (err) {
@@ -654,21 +654,18 @@ async function refrescarResumenDesdeBD() {
 
   try {
     const res = await fetch(`/api/viajes/${encodeURIComponent(viajeActivo)}/resumen-db`);
-
-    if (!res.ok) {
-      console.error("Error refrescando resumen DB: HTTP", res.status);
-      return;
-    }
-
     const json = await res.json();
+
     if (!json.ok) return;
 
     const row = json.data || {};
+
     const ok = Number(row.ok || 0);
     const rereg = Number(row.reregistrados || 0);
 
-    // solo acumulado
-    setText(totalAcumuladoGeneral, ok + rereg);
+    // ✔️ ÚNICA fuente del acumulado
+   setAcumuladoSeguro(ok + rereg);
+
   } catch (err) {
     console.error("Error refrescando resumen DB:", err);
   }
