@@ -39,6 +39,13 @@ function setHTML(el, value) {
   if (el) el.innerHTML = value;
 }
 
+function setAcumuladoSeguro(valor) {
+  if (valor !== ultimoAcumulado) {
+    ultimoAcumulado = valor;
+    setText(totalAcumuladoGeneral, valor);
+  }
+}
+
 function setStatus(texto, tipo = "neutral") {
   if (!statusBar) return;
   statusBar.textContent = texto;
@@ -78,6 +85,7 @@ function limpiarResumenViaje() {
   setText(totalDuplicados, 0);
   setText(totalErrores, 0);
   setText(totalAcumuladoGeneral, 0);
+  ultimoAcumulado = null;
   setText(viajeActivoLabel, "Sin viaje");
 
   actualizarAlertasResumen(0, 0);
@@ -383,10 +391,10 @@ function iniciarAutoRefreshViaje() {
   autoRefreshTimer = setInterval(async () => {
     if (!viajeActivo) return;
 
-    await refrescarResumen();        // sesión actual
-    await refrescarDetalle();        // sesión actual
-    await refrescarPivot();          // sesión actual
-    await refrescarResumenDesdeBD(); // acumulado histórico
+    await refrescarResumen();
+    await refrescarDetalle();
+    await refrescarPivot();
+    await refrescarResumenDesdeBD();
     await cargarContadorGeneralBD();
   }, 3000);
 }
@@ -433,7 +441,6 @@ async function activarViaje(nombre) {
 
     setText(viajeActivoLabel, viajeNombre);
 
-    // reiniciar SOLO la sesión actual
     setText(totalEscaneados, 0);
     setText(totalDuplicados, 0);
     setText(totalErrores, 0);
@@ -469,7 +476,6 @@ async function activarViaje(nombre) {
       `;
     }
 
-    // solo acumulado histórico
     await refrescarResumenDesdeBD();
     await cargarContadorGeneralBD();
 
@@ -553,7 +559,7 @@ async function escanearCodigo(barcode) {
 
     if (!res.ok || !data.ok) {
       setStatus(data.error || "Error al escanear", "error");
-      console.error("Error backend:", data);
+      console.error("Error backend /api/escanear:", data);
       return;
     }
 
@@ -600,13 +606,13 @@ async function reregistrarCodigo(barcodeOriginal) {
     const json = await res.json();
 
     if (!json.ok) {
+      console.error("Error backend /api/reregistrar:", json);
       setStatus(json.error || "No se pudo re-registrar", "error");
       return;
     }
 
     setStatus(`${barcodeOriginal} → RE-REGISTRADO como ${json.data.barcode}`, "ok");
 
-    // quitar el original de la vista local
     cacheDetalle = cacheDetalle.filter(r => r.barcode !== barcodeOriginal);
 
     renderDetalle(cacheDetalle);
@@ -636,8 +642,6 @@ async function refrescarResumen() {
     const reregSesion = json.sesionActual?.reregistrados ?? 0;
     const duplicados = json.sesionActual?.duplicados ?? 0;
     const errores = json.sesionActual?.errores ?? 0;
-    const okAcumulado = json.acumulado?.ok ?? 0;
-    const reregAcumulado = json.acumulado?.reregistrados ?? 0;
 
     setText(totalEscaneados, okSesion + reregSesion);
     setText(totalDuplicados, duplicados);
@@ -654,18 +658,19 @@ async function refrescarResumenDesdeBD() {
 
   try {
     const res = await fetch(`/api/viajes/${encodeURIComponent(viajeActivo)}/resumen-db`);
-    const json = await res.json();
+    if (!res.ok) {
+      console.error("Error refrescando resumen DB: HTTP", res.status);
+      return;
+    }
 
+    const json = await res.json();
     if (!json.ok) return;
 
     const row = json.data || {};
-
     const ok = Number(row.ok || 0);
     const rereg = Number(row.reregistrados || 0);
 
-    // ✔️ ÚNICA fuente del acumulado
-   setAcumuladoSeguro(ok + rereg);
-
+    setAcumuladoSeguro(ok + rereg);
   } catch (err) {
     console.error("Error refrescando resumen DB:", err);
   }
@@ -794,7 +799,7 @@ function renderYaRegistrados(data) {
   if (!yaRegistradosLista) return;
 
   const duplicados = data
-    .filter((x) => x.resultado === "YA_REGISTRADO" && !x.reregistrado_hecho)
+    .filter((x) => x.resultado === "YA_REGISTRADO" && x.puede_reregistrar === true)
     .slice(0, 8);
 
   if (!duplicados.length) {
@@ -830,7 +835,7 @@ function renderYaRegistrados(data) {
 function renderDetalle(data) {
   if (!detalleBody) return;
 
-  const visibles = data.filter(r => !r.reregistrado_hecho);
+  const visibles = data.filter(r => r.resultado !== "REREGISTRADO");
 
   if (!visibles.length) {
     setHTML(detalleBody, `
@@ -848,7 +853,7 @@ function renderDetalle(data) {
 
     let acciones = `<button class="btn-delete" data-id="${row.id_local}">Eliminar</button>`;
 
-    if (row.resultado === "YA_REGISTRADO" && !row.reregistrado_hecho) {
+    if (row.resultado === "YA_REGISTRADO" && row.puede_reregistrar === true) {
       acciones += ` <button class="btn-primary btn-reregistrar-tabla" data-barcode="${row.barcode}">Re-registrar</button>`;
     }
 
@@ -914,7 +919,7 @@ async function refrescarDetalle() {
 
     const json = await res.json();
 
-    cacheDetalle = (json.data || []).filter(r => !r.reregistrado_hecho);
+    cacheDetalle = (json.data || []).filter(r => r.resultado !== "REREGISTRADO");
 
     renderYaRegistrados(cacheDetalle);
     renderDetalle(cacheDetalle);
@@ -984,10 +989,10 @@ async function eliminarRegistroReal(barcode) {
 }
 
 async function refrescarTodo() {
-  await refrescarResumen();         // sesión actual
-  await refrescarPivot();           // sesión actual
-  await refrescarDetalle();         // sesión actual
-  await refrescarResumenDesdeBD();  // acumulado histórico
+  await refrescarResumen();
+  await refrescarPivot();
+  await refrescarDetalle();
+  await refrescarResumenDesdeBD();
   await cargarContadorGeneralBD();
 
   const bloqueSeleccionado = bloqueGeneralSelect?.value || "";
@@ -1137,7 +1142,6 @@ window.addEventListener("load", async () => {
       }
     });
 
-    // sesión actual limpia
     setText(totalEscaneados, 0);
     setText(totalDuplicados, 0);
     setText(totalErrores, 0);
@@ -1173,7 +1177,6 @@ window.addEventListener("load", async () => {
       `;
     }
 
-    // solo acumulado histórico
     await refrescarResumenDesdeBD();
     await cargarContadorGeneralBD();
     iniciarAutoRefreshViaje();
