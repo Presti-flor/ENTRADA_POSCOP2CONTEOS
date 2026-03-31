@@ -21,7 +21,7 @@
       --ok-soft:rgba(57,255,111,.12);
       --warn:#facc15;
       --warn-soft:rgba(250,204,21,.14);
-      --error:#f87171;
+      --error:#d80f0f;
       --error-soft:rgba(248,113,113,.14);
       --shadow:0 12px 30px rgba(0,0,0,.28);
       --radius:20px;
@@ -316,9 +316,9 @@
     }
 
     .alerta-errores{
-      background:linear-gradient(180deg, rgba(248,113,113,.18), rgba(248,113,113,.08)) !important;
-      border:1px solid rgba(248,113,113,.34) !important;
-      box-shadow:0 0 20px rgba(248,113,113,.10);
+      background:linear-gradient(180deg, rgba(141, 12, 12, 0.18), rgba(248,113,113,.08)) !important;
+      border:1px solid rgba(168, 5, 5, 0.34) !important;
+      box-shadow:0 0 20px rgba(183, 3, 3, 0.1);
     }
 
     .alerta-errores .metric-label,
@@ -784,20 +784,6 @@
             </table>
           </div>
         </section>
-        <section class="card" id="escaneo">
-              <h2>Escaneo en vivo</h2>
-              <div class="scan-box">
-                <div class="field">
-                  <label for="barcode">Escanea o escribe código manualmente</label>
-                  <input class="scan-input" type="text" id="barcode" placeholder="Esperando escaneo...">
-                </div>
-
-                <div id="status-bar" class="status-bar status-neutral">
-                  Último estado: listo para escanear.
-                </div>
-              </div>
-            </section>
-        </section>
 
         <section class="card content-section" id="consulta">
           <h2>Consulta general del sistema</h2>
@@ -889,30 +875,22 @@
           </div>
         </section>
 
-        <section class="card content-section" id="tabla-dinamica">
-          <h2>Tabla dinámica de registros</h2>
-          <div class="table-wrap">
-            <table>
-              <thead>
-                <tr>
-                  <th>Bloque</th>
-                  <th>Variedad</th>
-                  <th>Tamaño</th>
-                  <th>Tallos</th>
-                  <th>Etapa</th>
-                  <th>Tabacos</th>
-                  <th>Suma de tallos</th>
-                  <th>Form</th>
-                </tr>
-              </thead>
-              <tbody id="pivot-body">
-                <tr>
-                  <td colspan="8" class="empty-row">Sin datos para mostrar.</td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
+          <section class="card" id="escaneo">
+              <h2>Escaneo en vivo</h2>
+              <div class="scan-box">
+                <div class="field">
+                  <label for="barcode">Escanea o escribe código manualmente</label>
+                  <input class="scan-input" type="text" id="barcode" placeholder="Esperando escaneo...">
+                </div>
+
+                <div id="status-bar" class="status-bar status-neutral">
+                  Último estado: listo para escanear.
+                </div>
+              </div>
+            </section>
         </section>
+        </section>
+        
 
       </div>
     </main>

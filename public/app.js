@@ -129,8 +129,13 @@ function limpiarConsultaGeneral() {
 async function cargarContadorGeneralBD() {
   try {
     const res = await fetch("/api/general/contador");
-    const json = await res.json();
 
+    if (!res.ok) {
+      console.error("Error cargando contador general BD: HTTP", res.status);
+      return;
+    }
+
+    const json = await res.json();
     if (!json.ok) return;
 
     setText(contadorGeneralBd, json.total ?? 0);
@@ -145,8 +150,9 @@ async function cargarBloquesGenerales() {
 
   try {
     const res = await fetch("/api/general/bloques");
-    const json = await res.json();
+    if (!res.ok) return;
 
+    const json = await res.json();
     if (!json.ok) return;
 
     const seleccionado = bloqueGeneralSelect.value || "";
@@ -176,8 +182,9 @@ async function cargarVariedadesGeneralesPorBloque(bloque, variedadSeleccionada =
 
   try {
     const res = await fetch(`/api/general/bloque/${encodeURIComponent(bloque)}/variedades`);
-    const json = await res.json();
+    if (!res.ok) return;
 
+    const json = await res.json();
     variedadGeneralSelect.innerHTML = `<option value="">Seleccionar variedad</option>`;
 
     if (!json.ok) return;
@@ -210,6 +217,15 @@ async function cargarResumenGeneralPorBloque(bloque, variedad = "") {
       : `/api/general/bloque/${encodeURIComponent(bloque)}`;
 
     const res = await fetch(url);
+    if (!res.ok) {
+      setHTML(generalBloqueBody, `
+        <tr>
+          <td colspan="7" class="empty-row">Error cargando el resumen del bloque.</td>
+        </tr>
+      `);
+      return;
+    }
+
     const json = await res.json();
 
     if (!json.ok || !json.data.length) {
@@ -263,6 +279,15 @@ async function cargarDetalleGeneralPorBloque(bloque, variedad = "") {
       : `/api/general/bloque/${encodeURIComponent(bloque)}/detalle`;
 
     const res = await fetch(url);
+    if (!res.ok) {
+      setHTML(generalBloqueDetalleBody, `
+        <tr>
+          <td colspan="13" class="empty-row">Error cargando el detalle del bloque.</td>
+        </tr>
+      `);
+      return;
+    }
+
     const json = await res.json();
 
     if (!json.ok || !json.data.length) {
@@ -321,6 +346,11 @@ async function cargarViajes() {
 
   try {
     const res = await fetch("/api/viajes");
+    if (!res.ok) {
+      contenedor.innerHTML = "";
+      return;
+    }
+
     const json = await res.json();
 
     if (!json.ok || !Array.isArray(json.data)) {
@@ -352,8 +382,10 @@ function iniciarAutoRefreshViaje() {
   autoRefreshTimer = setInterval(async () => {
     if (!viajeActivo) return;
 
-    await refrescarResumenDesdeBD();
-    await refrescarResumenVariedadDesdeBD();
+    await refrescarResumen();        // sesión actual
+    await refrescarDetalle();        // sesión actual
+    await refrescarPivot();          // sesión actual
+    await refrescarResumenDesdeBD(); // acumulado histórico
     await cargarContadorGeneralBD();
   }, 3000);
 }
@@ -389,6 +421,7 @@ async function activarViaje(nombre) {
 
     viajeActivo = viajeNombre;
     guardarEstadoUI();
+    detenerAutoRefreshViaje();
 
     document.querySelectorAll(".btn-viaje").forEach((b) => {
       b.classList.remove("activo");
@@ -398,11 +431,48 @@ async function activarViaje(nombre) {
     });
 
     setText(viajeActivoLabel, viajeNombre);
-    setStatus(`Viaje ${viajeNombre} activado`, "ok");
 
+    // reiniciar SOLO la sesión actual
+    setText(totalEscaneados, 0);
+    setText(totalDuplicados, 0);
+    setText(totalErrores, 0);
+    actualizarAlertasResumen(0, 0);
+
+    cacheDetalle = [];
+
+    if (detalleBody) {
+      detalleBody.innerHTML = `
+        <tr>
+          <td colspan="14" class="empty-row">Sin registros todavía.</td>
+        </tr>
+      `;
+    }
+
+    if (pivotBody) {
+      pivotBody.innerHTML = `
+        <tr>
+          <td colspan="8" class="empty-row">Sin datos para mostrar.</td>
+        </tr>
+      `;
+    }
+
+    if (yaRegistradosLista) {
+      yaRegistradosLista.innerHTML = `<div class="ya-registrado-item">Sin novedades.</div>`;
+    }
+
+    if (resumenVariedadBody) {
+      resumenVariedadBody.innerHTML = `
+        <tr>
+          <td colspan="3" class="empty-row">Sin registros por variedad.</td>
+        </tr>
+      `;
+    }
+
+    // solo acumulado histórico
     await refrescarResumenDesdeBD();
-    await refrescarResumenVariedadDesdeBD();
-    await refrescarTodo();
+    await cargarContadorGeneralBD();
+
+    setStatus(`Viaje ${viajeNombre} activado`, "ok");
     iniciarAutoRefreshViaje();
   } catch (err) {
     console.error("Error activando viaje:", err);
@@ -499,8 +569,6 @@ async function escanearCodigo(barcode) {
     }
 
     await refrescarTodo();
-    await refrescarResumenDesdeBD();
-    await refrescarResumenVariedadDesdeBD();
   } catch (error) {
     console.error("Error escaneando:", error);
     setStatus("Error escaneando", "error");
@@ -536,9 +604,15 @@ async function reregistrarCodigo(barcodeOriginal) {
     }
 
     setStatus(`${barcodeOriginal} → RE-REGISTRADO como ${json.data.barcode}`, "ok");
+
+    // quitar el original de la vista local
+    cacheDetalle = cacheDetalle.filter(r => r.barcode !== barcodeOriginal);
+
+    renderDetalle(cacheDetalle);
+    renderYaRegistrados(cacheDetalle);
+    refrescarResumenPorVariedad();
+
     await refrescarTodo();
-    await refrescarResumenDesdeBD();
-    await refrescarResumenVariedadDesdeBD();
   } catch (err) {
     console.error("Error en re-registro:", err);
     setStatus("Error en re-registro", "error");
@@ -553,6 +627,8 @@ async function refrescarResumen() {
 
   try {
     const res = await fetch(`/api/viajes/${encodeURIComponent(viajeActivo)}/resumen`);
+    if (!res.ok) return;
+
     const json = await res.json();
 
     const okSesion = json.sesionActual?.ok ?? 0;
@@ -574,54 +650,27 @@ async function refrescarResumen() {
 }
 
 async function refrescarResumenDesdeBD() {
-  if (!viajeActivo) {
-    setText(totalEscaneados, 0);
-    setText(totalAcumuladoGeneral, 0);
-    return;
-  }
+  if (!viajeActivo) return;
 
   try {
     const res = await fetch(`/api/viajes/${encodeURIComponent(viajeActivo)}/resumen-db`);
-    const json = await res.json();
 
+    if (!res.ok) {
+      console.error("Error refrescando resumen DB: HTTP", res.status);
+      return;
+    }
+
+    const json = await res.json();
     if (!json.ok) return;
 
     const row = json.data || {};
     const ok = Number(row.ok || 0);
     const rereg = Number(row.reregistrados || 0);
 
-    setText(totalEscaneados, ok + rereg);
+    // solo acumulado
     setText(totalAcumuladoGeneral, ok + rereg);
   } catch (err) {
     console.error("Error refrescando resumen DB:", err);
-  }
-}
-
-async function refrescarResumenVariedadDesdeBD() {
-  if (!viajeActivo || !resumenVariedadBody) return;
-
-  try {
-    const res = await fetch(`/api/viajes/${encodeURIComponent(viajeActivo)}/variedades-db`);
-    const json = await res.json();
-
-    if (!json.ok || !json.data.length) {
-      resumenVariedadBody.innerHTML = `
-        <tr>
-          <td colspan="3" class="empty-row">Sin registros por variedad.</td>
-        </tr>
-      `;
-      return;
-    }
-
-    resumenVariedadBody.innerHTML = json.data.map(row => `
-      <tr>
-        <td>${row.variedad ?? ""}</td>
-        <td class="cell-green">${row.tabacos ?? 0}</td>
-        <td class="cell-blue">${row.total_tallos ?? 0}</td>
-      </tr>
-    `).join("");
-  } catch (err) {
-    console.error("Error refrescando variedades DB:", err);
   }
 }
 
@@ -639,6 +688,8 @@ async function refrescarPivot() {
 
   try {
     const res = await fetch(`/api/viajes/${encodeURIComponent(viajeActivo)}/pivot`);
+    if (!res.ok) return;
+
     const json = await res.json();
 
     if (!json.data.length) {
@@ -782,7 +833,9 @@ function renderYaRegistrados(data) {
 function renderDetalle(data) {
   if (!detalleBody) return;
 
-  if (!data.length) {
+  const visibles = data.filter(r => !r.reregistrado_hecho);
+
+  if (!visibles.length) {
     setHTML(detalleBody, `
       <tr>
         <td colspan="14" class="empty-row">Sin registros todavía.</td>
@@ -793,7 +846,7 @@ function renderDetalle(data) {
 
   detalleBody.innerHTML = "";
 
-  data.forEach((row) => {
+  visibles.forEach((row) => {
     const fecha = new Date(row.fecha).toLocaleString("es-CO");
 
     let acciones = `<button class="btn-delete" data-id="${row.id_local}">Eliminar</button>`;
@@ -860,9 +913,12 @@ async function refrescarDetalle() {
 
   try {
     const res = await fetch(`/api/viajes/${encodeURIComponent(viajeActivo)}/detalle`);
+    if (!res.ok) return;
+
     const json = await res.json();
 
-    cacheDetalle = json.data || [];
+    cacheDetalle = (json.data || []).filter(r => !r.reregistrado_hecho);
+
     renderYaRegistrados(cacheDetalle);
     renderDetalle(cacheDetalle);
     refrescarResumenPorVariedad();
@@ -891,8 +947,6 @@ async function eliminarRegistro(idLocal) {
 
     setStatus("Registro eliminado del viaje actual", "ok");
     await refrescarTodo();
-    await refrescarResumenDesdeBD();
-    await refrescarResumenVariedadDesdeBD();
   } catch (err) {
     console.error("Error eliminando registro:", err);
     setStatus("Error al eliminar registro", "error");
@@ -918,8 +972,6 @@ async function eliminarRegistroReal(barcode) {
     setStatus(`Registro ${barcode} eliminado de la base de datos`, "ok");
 
     await refrescarTodo();
-    await refrescarResumenDesdeBD();
-    await refrescarResumenVariedadDesdeBD();
 
     const bloque = bloqueGeneralSelect?.value || "";
     const variedad = variedadGeneralSelect?.value || "";
@@ -935,9 +987,10 @@ async function eliminarRegistroReal(barcode) {
 }
 
 async function refrescarTodo() {
-  await refrescarResumen();
-  await refrescarPivot();
-  await refrescarDetalle();
+  await refrescarResumen();         // sesión actual
+  await refrescarPivot();           // sesión actual
+  await refrescarDetalle();         // sesión actual
+  await refrescarResumenDesdeBD();  // acumulado histórico
   await cargarContadorGeneralBD();
 
   const bloqueSeleccionado = bloqueGeneralSelect?.value || "";
@@ -1087,9 +1140,45 @@ window.addEventListener("load", async () => {
       }
     });
 
-    await refrescarTodo();
+    // sesión actual limpia
+    setText(totalEscaneados, 0);
+    setText(totalDuplicados, 0);
+    setText(totalErrores, 0);
+    actualizarAlertasResumen(0, 0);
+
+    cacheDetalle = [];
+
+    if (detalleBody) {
+      detalleBody.innerHTML = `
+        <tr>
+          <td colspan="14" class="empty-row">Sin registros todavía.</td>
+        </tr>
+      `;
+    }
+
+    if (pivotBody) {
+      pivotBody.innerHTML = `
+        <tr>
+          <td colspan="8" class="empty-row">Sin datos para mostrar.</td>
+        </tr>
+      `;
+    }
+
+    if (yaRegistradosLista) {
+      yaRegistradosLista.innerHTML = `<div class="ya-registrado-item">Sin novedades.</div>`;
+    }
+
+    if (resumenVariedadBody) {
+      resumenVariedadBody.innerHTML = `
+        <tr>
+          <td colspan="3" class="empty-row">Sin registros por variedad.</td>
+        </tr>
+      `;
+    }
+
+    // solo acumulado histórico
     await refrescarResumenDesdeBD();
-    await refrescarResumenVariedadDesdeBD();
+    await cargarContadorGeneralBD();
     iniciarAutoRefreshViaje();
   }
 
