@@ -865,21 +865,18 @@ function renderDetalle(data) {
 
     const tr = document.createElement("tr");
     tr.innerHTML = `
-      <td>${fecha}</td>
-      <td>${viajeActivo}</td>
-      <td>${row.barcode ?? ""}</td>
-      <td>${row.tipo ?? ""}</td>
-      <td>${row.serial ?? ""}</td>
-      <td>${row.bloque ?? ""}</td>
-      <td>${row.variedad ?? ""}</td>
-      <td>${row.tamano ?? ""}</td>
-      <td>${row.tallos ?? ""}</td>
-      <td>${row.etapa ?? ""}</td>
-      <td>${row.form ?? ""}</td>
-      <td>${badgeResultado(row.resultado)}</td>
-      <td>${row.observacion ?? ""}</td>
-      <td>${acciones}</td>
-    `;
+  <td>${fecha}</td>
+  <td>${viajeActivo}</td>
+  <td>${row.barcode ?? ""}</td>
+  <td>${row.bloque ?? ""}</td>
+  <td>${row.variedad ?? ""}</td>
+  <td>${row.tamano ?? ""}</td>
+  <td>${row.tallos ?? ""}</td>
+  <td>${row.form ?? ""}</td>
+  <td>${badgeResultado(row.resultado)}</td>
+  <td>${row.observacion ?? ""}</td>
+  <td>${acciones}</td>
+`;
     detalleBody.appendChild(tr);
   });
 
