@@ -740,7 +740,7 @@ function refrescarResumenPorVariedad() {
   if (!viajeActivo || !cacheDetalle.length) {
     resumenVariedadBody.innerHTML = `
       <tr>
-        <td colspan="3" class="empty-row">Sin registros por variedad.</td>
+        <td colspan="5" class="empty-row">Sin registros por variedad.</td>
       </tr>
     `;
     return;
@@ -751,36 +751,42 @@ function refrescarResumenPorVariedad() {
   cacheDetalle.forEach((row) => {
     if (!["OK", "REREGISTRADO"].includes(row.resultado)) return;
 
+    const bloque = String(row.bloque || "N/A").trim();
     const variedad = String(row.variedad || "Sin variedad").trim();
+    const tamano = String(row.tamano || "N/A").trim();
 
-    if (!agrupado[variedad]) {
-      agrupado[variedad] = {
+    const key = `${bloque}|${variedad}|${tamano}`;
+
+    if (!agrupado[key]) {
+      agrupado[key] = {
+        bloque,
         variedad,
+        tamano,
         tabacos: 0,
         totalTallos: 0
       };
     }
 
-    agrupado[variedad].tabacos += 1;
-    agrupado[variedad].totalTallos += Number(row.tallos || 0);
+    agrupado[key].tabacos += 1;
+    agrupado[key].totalTallos += Number(row.tallos || 0);
   });
 
-  const filas = Object.values(agrupado).sort((a, b) =>
-    a.variedad.localeCompare(b.variedad)
-  );
+  const filas = Object.values(agrupado);
 
   if (!filas.length) {
     resumenVariedadBody.innerHTML = `
       <tr>
-        <td colspan="3" class="empty-row">Sin registros por variedad.</td>
+        <td colspan="5" class="empty-row">Sin registros por variedad.</td>
       </tr>
     `;
     return;
   }
 
-  resumenVariedadBody.innerHTML = filas.map((item) => `
+  resumenVariedadBody.innerHTML = filas.map(item => `
     <tr>
+      <td>${item.bloque}</td>
       <td>${item.variedad}</td>
+      <td>${item.tamano}</td>
       <td class="cell-green">${item.tabacos}</td>
       <td class="cell-blue">${item.totalTallos}</td>
     </tr>
