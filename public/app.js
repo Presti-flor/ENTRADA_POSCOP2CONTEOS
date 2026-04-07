@@ -613,12 +613,6 @@ async function reregistrarCodigo(barcodeOriginal) {
 
     setStatus(`${barcodeOriginal} → RE-REGISTRADO como ${json.data.barcode}`, "ok");
 
-    cacheDetalle = cacheDetalle.filter(r => r.barcode !== barcodeOriginal);
-
-    renderDetalle(cacheDetalle);
-    renderYaRegistrados(cacheDetalle);
-    refrescarResumenPorVariedad();
-
     await refrescarTodo();
   } catch (err) {
     console.error("Error en re-registro:", err);
@@ -841,12 +835,12 @@ function renderYaRegistrados(data) {
 function renderDetalle(data) {
   if (!detalleBody) return;
 
-  const visibles = data.filter(r => r.resultado !== "REREGISTRADO");
+  const visibles = data || [];
 
   if (!visibles.length) {
     setHTML(detalleBody, `
       <tr>
-        <td colspan="14" class="empty-row">Sin registros todavía.</td>
+        <td colspan="11" class="empty-row">Sin registros todavía.</td>
       </tr>
     `);
     return;
@@ -863,20 +857,25 @@ function renderDetalle(data) {
       acciones += ` <button class="btn-primary btn-reregistrar-tabla" data-barcode="${row.barcode}">Re-registrar</button>`;
     }
 
+    const observacionTexto =
+      row.resultado === "REREGISTRADO" && row.barcode_origen
+        ? `Re-registro de ${row.barcode_origen}`
+        : (row.observacion ?? "");
+
     const tr = document.createElement("tr");
     tr.innerHTML = `
-  <td>${fecha}</td>
-  <td>${viajeActivo}</td>
-  <td>${row.barcode ?? ""}</td>
-  <td>${row.bloque ?? ""}</td>
-  <td>${row.variedad ?? ""}</td>
-  <td>${row.tamano ?? ""}</td>
-  <td>${row.tallos ?? ""}</td>
-  <td>${row.form ?? ""}</td>
-  <td>${badgeResultado(row.resultado)}</td>
-  <td>${row.observacion ?? ""}</td>
-  <td>${acciones}</td>
-`;
+      <td>${fecha}</td>
+      <td>${viajeActivo}</td>
+      <td>${row.barcode ?? ""}</td>
+      <td>${row.bloque ?? ""}</td>
+      <td>${row.variedad ?? ""}</td>
+      <td>${row.tamano ?? ""}</td>
+      <td>${row.tallos ?? ""}</td>
+      <td>${row.form ?? ""}</td>
+      <td>${badgeResultado(row.resultado)}</td>
+      <td>${observacionTexto}</td>
+      <td>${acciones}</td>
+    `;
     detalleBody.appendChild(tr);
   });
 
@@ -901,14 +900,14 @@ async function refrescarDetalle() {
   if (!viajeActivo) {
     setHTML(detalleBody, `
       <tr>
-        <td colspan="14" class="empty-row">Sin registros todavía.</td>
+        <td colspan="11" class="empty-row">Sin registros todavía.</td>
       </tr>
     `);
 
     if (resumenVariedadBody) {
       resumenVariedadBody.innerHTML = `
         <tr>
-          <td colspan="3" class="empty-row">Sin registros por variedad.</td>
+          <td colspan="5" class="empty-row">Sin registros por variedad.</td>
         </tr>
       `;
     }
@@ -922,7 +921,7 @@ async function refrescarDetalle() {
 
     const json = await res.json();
 
-    cacheDetalle = (json.data || []).filter(r => r.resultado !== "REREGISTRADO");
+    cacheDetalle = json.data || [];
 
     renderYaRegistrados(cacheDetalle);
     renderDetalle(cacheDetalle);
