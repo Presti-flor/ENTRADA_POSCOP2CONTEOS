@@ -138,7 +138,6 @@ app.post("/api/viajes/activar", (req, res) => {
   }
 
   const viaje = asegurarViaje(nombre);
-
   viaje.activa = true;
   viaje.historialSesion = [];
 
@@ -147,6 +146,25 @@ app.post("/api/viajes/activar", (req, res) => {
   res.json({
     ok: true,
     data: { nombre, activa: true, viajeActivoGlobal },
+  });
+});
+
+app.post("/api/viajes/finalizar", (req, res) => {
+  const nombre = String(req.body.nombre || "").trim();
+
+  if (!nombre || !sesionesViaje[nombre]) {
+    return res.status(404).json({ ok: false, error: "Viaje no encontrado" });
+  }
+
+  sesionesViaje[nombre].activa = false;
+
+  if (viajeActivoGlobal === nombre) {
+    viajeActivoGlobal = "";
+  }
+
+  res.json({
+    ok: true,
+    data: { nombre, activa: false },
   });
 });
 
@@ -455,47 +473,89 @@ app.post("/guardar", async (req, res) => {
     tamano,
     tallos,
     etapa,
+    origen,
+    reregistro,
     form,
-    viaje,
     barcode_origen,
-    es_reregistro,
+    es_reregistro
   } = req.body;
 
   try {
-    const viajeFinal = String(viaje || viajeActivoGlobal || "").trim();
+    const formNormalizado = String(form || "").trim().toLowerCase();
+    const debeSumarAViaje =
+      formNormalizado === "fin_corte" || formNormalizado === "nacional";
 
-    if (!viajeFinal) {
-      return res.status(400).json({ ok: false, error: "No hay viaje activo" });
-    }
+    const viajeAsignado = debeSumarAViaje ? (viajeActivoGlobal || null) : null;
 
-    const result = await pool.query(
-      `INSERT INTO public.registros
+    const result = await pool.query(`
+      INSERT INTO public.registros
       (barcode, tipo, serial, variedad, bloque, tamano, tallos, etapa, viaje, barcode_origen, es_reregistro, form)
       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)
-      RETURNING *`,
-      [
-        barcode,
-        tipo,
-        serial,
-        variedad,
-        bloque,
-        tamano,
-        tallos,
-        etapa || "Ingreso",
-        viajeFinal,
-        barcode_origen || null,
-        Boolean(es_reregistro),
-        form || null,
-      ]
-    );
+      RETURNING *
+    `, [
+      barcode,
+      tipo,
+      serial,
+      variedad,
+      bloque,
+      tamano,
+      tallos,
+      etapa || "Ingreso",
+      viajeAsignado,
+      barcode_origen || null,
+      es_reregistro === true || reregistro === true,
+      form || ""
+    ]);
+
+    const row = result.rows[0];
+
+    // Si debe reflejarse en el viaje activo, también lo metemos en memoria
+    if (debeSumarAViaje && viajeAsignado) {
+      const viaje = asegurarViaje(viajeAsignado);
+
+      if (viaje.activa) {
+        const evento = {
+          id_local: secuenciaLocal++,
+          fecha: new Date().toISOString(),
+          barcode: row.barcode,
+          tipo: row.tipo,
+          serial: row.serial,
+          bloque: row.bloque,
+          variedad: row.variedad,
+          tamano: row.tamano,
+          tallos: row.tallos,
+          etapa: row.etapa,
+          form: row.form,
+          resultado: row.es_reregistro ? "REREGISTRADO" : "OK",
+          observacion: debeSumarAViaje
+            ? `Registro recibido desde formulario ${formNormalizado}`
+            : "",
+          barcode_origen: row.barcode_origen || null,
+          puede_reregistrar: false
+        };
+
+        viaje.historial.unshift(evento);
+        viaje.historialSesion.unshift(evento);
+
+        if (row.es_reregistro) {
+          viaje.acumulado.reregistrados += 1;
+        } else {
+          viaje.acumulado.ok += 1;
+        }
+      }
+    }
 
     return res.json({
       ok: true,
-      data: result.rows[0],
+      data: row
     });
   } catch (error) {
-    console.error("❌ Error al guardar:", error);
-    return res.status(500).json({ ok: false, error: "No se pudo guardar" });
+    console.error("Error al guardar:", error);
+    return res.status(500).json({
+      ok: false,
+      error: "No se pudo guardar",
+      detail: error.message
+    });
   }
 });
 
