@@ -851,7 +851,7 @@ function renderDetalle(data) {
   visibles.forEach((row) => {
     const fecha = new Date(row.fecha).toLocaleString("es-CO");
 
-    let acciones = `<button class="btn-delete" data-id="${row.id_local}">Eliminar</button>`;
+    let acciones = `<button class="btn-delete" data-barcode="${row.barcode}">Eliminar</button>`;
 
     if (row.resultado === "YA_REGISTRADO" && row.puede_reregistrar === true) {
       acciones += ` <button class="btn-primary btn-reregistrar-tabla" data-barcode="${row.barcode}">Re-registrar</button>`;
@@ -880,9 +880,9 @@ function renderDetalle(data) {
   });
 
   detalleBody.querySelectorAll(".btn-delete").forEach((btn) => {
-    btn.addEventListener("click", async () => {
-      const idLocal = btn.dataset.id;
-      await eliminarRegistro(idLocal);
+  btn.addEventListener("click", async () => {
+    const idLocal = btn.dataset.id;
+    await eliminarRegistro(idLocal);
     });
   });
 
