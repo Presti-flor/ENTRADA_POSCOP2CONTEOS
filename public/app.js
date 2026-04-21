@@ -881,10 +881,10 @@ function renderDetalle(data) {
 
   detalleBody.querySelectorAll(".btn-delete").forEach((btn) => {
   btn.addEventListener("click", async () => {
-    const idLocal = btn.dataset.id;
-    await eliminarRegistro(idLocal);
-    });
+    const barcode = btn.dataset.barcode;
+    await eliminarRegistroReal(barcode);
   });
+});
 
   detalleBody.querySelectorAll(".btn-reregistrar-tabla").forEach((btn) => {
     btn.addEventListener("click", async () => {
