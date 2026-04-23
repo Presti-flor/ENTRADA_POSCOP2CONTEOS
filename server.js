@@ -1032,6 +1032,114 @@ app.get("/api/viajes/:nombre/variedades-db", async (req, res) => {
   }
 });
 
+app.post("/api/registros/manual", async (req, res) => {
+  try {
+    const viajeNombre = String(req.body.viaje || "").trim();
+    const bloque = String(req.body.bloque || "").trim();
+    const variedad = String(req.body.variedad || "").trim();
+    const tamanoRaw = String(req.body.tamano || "").trim();
+    const form = String(req.body.form || "").trim();
+    const etapa = String(req.body.etapa || "Ingreso").trim();
+    let tipo = String(req.body.tipo || "").trim();
+    const tallos = Number(req.body.tallos || 0);
+
+    if (!viajeNombre) {
+      return res.status(400).json({ ok: false, error: "Falta viaje" });
+    }
+
+    if (!bloque || !variedad || !tallos) {
+      return res.status(400).json({ ok: false, error: "Faltan datos del registro manual" });
+    }
+
+    const viaje = asegurarViaje(viajeNombre);
+
+    if (!viaje.activa) {
+      return res.status(400).json({ ok: false, error: "El viaje está finalizado" });
+    }
+
+    const tamano = tamanoRaw || null;
+
+    if (!tipo) {
+      const tipoLookup = await pool.query(`
+        SELECT tipo
+        FROM public.registros
+        WHERE viaje = $1
+          AND COALESCE(TRIM(variedad), '') = COALESCE(TRIM($2), '')
+          AND COALESCE(TRIM(CAST(bloque AS text)), '') = COALESCE(TRIM($3), '')
+          AND COALESCE(TRIM(tamano), '') = COALESCE(TRIM($4), '')
+          AND COALESCE(tallos, 0) = $5
+        ORDER BY created_at DESC
+        LIMIT 1
+      `, [viajeNombre, variedad, bloque, tamano || "", tallos]);
+
+      if (tipoLookup.rowCount > 0) {
+        tipo = String(tipoLookup.rows[0].tipo || "").trim();
+      }
+    }
+
+    if (!tipo) {
+      tipo = "98";
+    }
+
+    const { serial, barcode } = await generarSerial9Unico(tipo);
+
+    const insert = await pool.query(`
+      INSERT INTO public.registros
+      (barcode, tipo, serial, variedad, bloque, tamano, tallos, etapa, viaje, barcode_origen, es_reregistro, form)
+      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)
+      RETURNING *
+    `, [
+      barcode,
+      tipo,
+      serial,
+      variedad,
+      bloque,
+      tamano,
+      tallos,
+      etapa,
+      viajeNombre,
+      null,
+      false,
+      form
+    ]);
+
+    const row = insert.rows[0];
+
+    const evento = {
+      id_local: secuenciaLocal++,
+      fecha: new Date().toISOString(),
+      barcode: row.barcode,
+      tipo: row.tipo,
+      serial: row.serial,
+      bloque: row.bloque,
+      variedad: row.variedad,
+      tamano: row.tamano,
+      tallos: row.tallos,
+      etapa: row.etapa,
+      form: row.form,
+      resultado: "OK",
+      observacion: "Agregado manualmente desde resumen",
+      puede_reregistrar: false,
+      barcode_origen: null
+    };
+
+    viaje.historial.unshift(evento);
+    viaje.historialSesion.unshift(evento);
+    viaje.acumulado.ok += 1;
+
+    return res.json({
+      ok: true,
+      data: evento
+    });
+  } catch (err) {
+    console.error("Error en /api/registros/manual:", err);
+    return res.status(500).json({
+      ok: false,
+      error: err.message
+    });
+  }
+});
+
 app.listen(port, () => {
   console.log(`✅ Servidor activo en http://localhost:${port}`);
 });

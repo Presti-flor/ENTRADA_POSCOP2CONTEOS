@@ -395,6 +395,21 @@
       font-size:.92rem;
       transition:.18s ease;
     }
+    .btn-add-manual{
+  border:none;
+  border-radius:10px;
+  padding:6px 12px;
+  font-weight:900;
+  font-size:1rem;
+  cursor:pointer;
+  background:linear-gradient(135deg,#16a34a,#22c55e);
+  color:#fff;
+  box-shadow:0 8px 18px rgba(34,197,94,.20);
+}
+
+.btn-add-manual:hover{
+  opacity:.92;
+}
 
     .btn-finalizar{
       background:linear-gradient(135deg,#dc2626,#ef4444);
@@ -736,19 +751,20 @@
               <div style="margin-top:16px;" class="table-wrap">
                 <table>
                   <thead>
-                    <tr>
-                      <th>Bloque</th>
-                      <th>Variedad</th>
-                      <th>Tamaño</th>
-                      <th>Tabacos</th>
-                      <th>Total tallos</th>
-                    </tr>
-                  </thead>
-                  <tbody id="resumen-variedad-body">
-                    <tr>
-                      <td colspan="5" class="empty-row">Sin registros por variedad.</td>
-                    </tr>
-                  </tbody>
+  <tr>
+    <th>Bloque</th>
+    <th>Variedad</th>
+    <th>Tamaño</th>
+    <th>Tabacos</th>
+    <th>Total tallos</th>
+    <th>+</th>
+  </tr>
+</thead>
+<tbody id="resumen-variedad-body">
+  <tr>
+    <td colspan="6" class="empty-row">Sin registros por variedad.</td>
+  </tr>
+</tbody>
                 </table>
               </div>
             </section>

@@ -734,7 +734,7 @@ function refrescarResumenPorVariedad() {
   if (!viajeActivo || !cacheDetalle.length) {
     resumenVariedadBody.innerHTML = `
       <tr>
-        <td colspan="5" class="empty-row">Sin registros por variedad.</td>
+        <td colspan="6" class="empty-row">Sin registros por variedad.</td>
       </tr>
     `;
     return;
@@ -747,44 +747,83 @@ function refrescarResumenPorVariedad() {
 
     const bloque = String(row.bloque || "N/A").trim();
     const variedad = String(row.variedad || "Sin variedad").trim();
-    const tamano = String(row.tamano || "N/A").trim();
+    const tamano = String(row.tamano || "NA").trim();
+    const tallos = Number(row.tallos || 0);
+    const form = String(row.form || "").trim();
+    const etapa = String(row.etapa || "Ingreso").trim();
+    const tipo = String(row.tipo || "").trim();
 
-    const key = `${bloque}|${variedad}|${tamano}`;
+    const key = `${bloque}|${variedad}|${tamano}|${tallos}|${form}|${etapa}|${tipo}`;
 
     if (!agrupado[key]) {
       agrupado[key] = {
         bloque,
         variedad,
         tamano,
+        tallos,
+        form,
+        etapa,
+        tipo,
         tabacos: 0,
         totalTallos: 0
       };
     }
 
     agrupado[key].tabacos += 1;
-    agrupado[key].totalTallos += Number(row.tallos || 0);
+    agrupado[key].totalTallos += tallos;
   });
 
-  const filas = Object.values(agrupado);
+  const filas = Object.values(agrupado).sort((a, b) => {
+    if (String(a.bloque) < String(b.bloque)) return -1;
+    if (String(a.bloque) > String(b.bloque)) return 1;
+    return String(a.variedad).localeCompare(String(b.variedad));
+  });
 
   if (!filas.length) {
     resumenVariedadBody.innerHTML = `
       <tr>
-        <td colspan="5" class="empty-row">Sin registros por variedad.</td>
+        <td colspan="6" class="empty-row">Sin registros por variedad.</td>
       </tr>
     `;
     return;
   }
 
-  resumenVariedadBody.innerHTML = filas.map(item => `
+  resumenVariedadBody.innerHTML = filas.map((item) => `
     <tr>
       <td>${item.bloque}</td>
       <td>${item.variedad}</td>
-      <td>${item.tamano}</td>
+      <td>${item.tamano || "NA"}</td>
       <td class="cell-green">${item.tabacos}</td>
       <td class="cell-blue">${item.totalTallos}</td>
+      <td>
+        <button
+          class="btn-add-manual"
+          data-bloque="${item.bloque}"
+          data-variedad="${item.variedad}"
+          data-tamano="${item.tamano || ""}"
+          data-tallos="${item.tallos}"
+          data-form="${item.form || ""}"
+          data-etapa="${item.etapa || "Ingreso"}"
+          data-tipo="${item.tipo || ""}"
+          title="Agregar un registro igual"
+        >+</button>
+      </td>
     </tr>
   `).join("");
+
+  resumenVariedadBody.querySelectorAll(".btn-add-manual").forEach((btn) => {
+    btn.addEventListener("click", async () => {
+      await agregarRegistroManualDesdeResumen({
+        bloque: btn.dataset.bloque,
+        variedad: btn.dataset.variedad,
+        tamano: btn.dataset.tamano,
+        tallos: Number(btn.dataset.tallos || 0),
+        form: btn.dataset.form,
+        etapa: btn.dataset.etapa,
+        tipo: btn.dataset.tipo
+      });
+    });
+  });
 }
 
 function badgeResultado(resultado) {
@@ -892,6 +931,48 @@ function renderDetalle(data) {
       await reregistrarCodigo(barcode);
     });
   });
+}
+async function agregarRegistroManualDesdeResumen(data) {
+  if (!viajeActivo) {
+    setStatus("Debes activar un viaje antes de agregar registros", "warn");
+    return;
+  }
+
+  try {
+    const res = await fetch("/api/registros/manual", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        viaje: viajeActivo,
+        bloque: data.bloque,
+        variedad: data.variedad,
+        tamano: data.tamano,
+        tallos: data.tallos,
+        form: data.form,
+        etapa: data.etapa || "Ingreso",
+        tipo: data.tipo
+      })
+    });
+
+    const json = await res.json();
+
+    if (!res.ok || !json.ok) {
+      setStatus(json.error || "No se pudo agregar el registro manual", "error");
+      return;
+    }
+
+    setStatus(
+      `Registro agregado: ${data.variedad} / ${data.tamano || "NA"} / ${data.tallos} tallos`,
+      "ok"
+    );
+
+    await refrescarTodo();
+  } catch (err) {
+    console.error("Error agregando registro manual:", err);
+    setStatus("Error agregando registro manual", "error");
+  }
 }
 
 async function refrescarDetalle() {
