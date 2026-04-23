@@ -1,5 +1,5 @@
 ///////////////////////CLAVE///////////////////////////////
-const CLAVE = "1234"; // cámbiala
+const CLAVE = "123"; // cámbiala
 
 function pedirAcceso() {
   const guardado = localStorage.getItem("acceso_ok");
