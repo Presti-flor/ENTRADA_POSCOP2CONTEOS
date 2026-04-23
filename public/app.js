@@ -1,3 +1,22 @@
+///////////////////////CLAVE///////////////////////////////
+const CLAVE = "1234"; // cámbiala
+
+function pedirAcceso() {
+  const guardado = localStorage.getItem("acceso_ok");
+
+  if (guardado === "true") return true;
+
+  const intento = prompt("Ingrese contraseña:");
+
+  if (intento === CLAVE) {
+    localStorage.setItem("acceso_ok", "true");
+    return true;
+  }
+
+  alert("Acceso denegado");
+  location.reload();
+  return false;
+}/////////////////////// CLAVE////////////////////////////////
 let viajeActivo = "";
 let cacheDetalle = [];
 let autoRefreshTimer = null;
@@ -1205,6 +1224,7 @@ if (variedadGeneralSelect) {
 }
 
 window.addEventListener("load", async () => {
+  if (!pedirAcceso()) return;
   await cargarContadorGeneralBD();
   await cargarBloquesGenerales();
   await cargarViajes();
