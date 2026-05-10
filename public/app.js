@@ -67,7 +67,41 @@ function setAcumuladoSeguro(valor) {
 function focusBarcodeSinScroll() {
   if (!barcodeInput) return;
 
-  barcodeInput.focus({ preventScroll: true });
+  const x = window.scrollX;
+  const y = window.scrollY;
+
+  try {
+    barcodeInput.focus({ preventScroll: true });
+  } catch (e) {
+    barcodeInput.focus();
+  }
+
+  window.scrollTo(x, y);
+
+  requestAnimationFrame(() => {
+    window.scrollTo(x, y);
+  });
+
+  setTimeout(() => {
+    window.scrollTo(x, y);
+  }, 50);
+}
+
+function conservarPosicionPantalla(fn) {
+  const x = window.scrollX;
+  const y = window.scrollY;
+
+  return Promise.resolve(fn()).finally(() => {
+    window.scrollTo(x, y);
+
+    requestAnimationFrame(() => {
+      window.scrollTo(x, y);
+    });
+
+    setTimeout(() => {
+      window.scrollTo(x, y);
+    }, 80);
+  });
 }
 
 function setStatus(texto, tipo = "neutral") {
@@ -600,7 +634,9 @@ async function escanearCodigo(barcode) {
       setStatus(`Escaneo procesado: ${barcodeLimpio}`, "ok");
     }
 
-    await refrescarTodo();
+    await conservarPosicionPantalla(async () => {
+  await refrescarTodo();
+});
   } catch (error) {
     console.error("Error escaneando:", error);
     setStatus("Error escaneando", "error");
@@ -1250,13 +1286,22 @@ if (barcodeInput) {
   focusBarcodeSinScroll();
 
   barcodeInput.addEventListener("blur", () => {
-    setTimeout(() => focusBarcodeSinScroll(), 50);
+    const x = window.scrollX;
+    const y = window.scrollY;
+
+    setTimeout(() => {
+      focusBarcodeSinScroll();
+      window.scrollTo(x, y);
+    }, 50);
   });
 
   barcodeInput.addEventListener("keydown", async (e) => {
     if (e.key !== "Enter") return;
 
     e.preventDefault();
+
+    const x = window.scrollX;
+    const y = window.scrollY;
 
     let codigo = barcodeInput.value
       .replace(/[\r\n]/g, "")
@@ -1266,12 +1311,15 @@ if (barcodeInput) {
 
     if (!codigo) {
       focusBarcodeSinScroll();
+      window.scrollTo(x, y);
       return;
     }
 
-    await escanearCodigo(codigo);
+    await conservarPosicionPantalla(async () => {
+      await escanearCodigo(codigo);
+    });
 
-    // dejar listo el siguiente escaneo
     focusBarcodeSinScroll();
+    window.scrollTo(x, y);
   });
 }
