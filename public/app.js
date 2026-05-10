@@ -1130,44 +1130,19 @@ async function procesarScanBuffer() {
   await escanearCodigo(codigo);
 }
 
-document.addEventListener("keydown", async (e) => {
-  if (e.key === "Shift" || e.key === "Control" || e.key === "Alt" || e.key === "Meta") {
-    return;
-  }
+barcodeInput.addEventListener("keydown", async (e) => {
 
-  const tag = (document.activeElement?.tagName || "").toLowerCase();
-  const esCampoEditable =
-    tag === "input" ||
-    tag === "textarea" ||
-    document.activeElement?.isContentEditable;
+  if (e.key !== "Enter") return;
 
-  if (esCampoEditable && document.activeElement !== barcodeInput) {
-    return;
-  }
+  e.preventDefault();
 
-  if (e.key === "Enter") {
-    if (scanBuffer.trim()) {
-      e.preventDefault();
-      await procesarScanBuffer();
-    }
-    return;
-  }
+  const codigo = barcodeInput.value.trim();
 
-  if (e.key.length === 1) {
-    scanBuffer += e.key;
+  if (!codigo) return;
 
-    if (barcodeInput) {
-      barcodeInput.value = scanBuffer;
-    }
+  barcodeInput.value = "";
 
-    if (scanTimer) {
-      clearTimeout(scanTimer);
-    }
-
-    scanTimer = setTimeout(async () => {
-      await procesarScanBuffer();
-    }, SCAN_GAP_MS);
-  }
+  await escanearCodigo(codigo);
 });
 
 function verDetalleFila(btn) {
