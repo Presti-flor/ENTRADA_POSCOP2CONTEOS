@@ -1246,16 +1246,10 @@ window.addEventListener("load", async () => {
   }
 });
 if (barcodeInput) {
-  // Asegura foco permanente
   focusBarcodeSinScroll();
 
-barcodeInput.addEventListener("blur", () => {
-  setTimeout(() => focusBarcodeSinScroll(), 50);
-});
-
-  // SOLO para ver qué llega (puedes quitarlo luego)
-  barcodeInput.addEventListener("input", () => {
-    console.log("RAW INPUT:", barcodeInput.value);
+  barcodeInput.addEventListener("blur", () => {
+    setTimeout(() => focusBarcodeSinScroll(), 50);
   });
 
   barcodeInput.addEventListener("keydown", async (e) => {
@@ -1263,21 +1257,20 @@ barcodeInput.addEventListener("blur", () => {
 
     e.preventDefault();
 
-    // LEER EXACTAMENTE LO QUE EL LECTOR ESCRIBE
-    let codigo = barcodeInput.value;
-
-    // Limpieza segura (no altera el código real)
-    codigo = codigo
+    let codigo = barcodeInput.value
       .replace(/[\r\n]/g, "")
       .trim();
 
-    console.log("CODIGO FINAL:", codigo);
-
     barcodeInput.value = "";
 
-    if (!codigo) return;
+    if (!codigo) {
+      focusBarcodeSinScroll();
+      return;
+    }
 
     await escanearCodigo(codigo);
+
+    // dejar listo el siguiente escaneo
     focusBarcodeSinScroll();
   });
 }
