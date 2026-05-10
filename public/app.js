@@ -22,9 +22,7 @@ let cacheDetalle = [];
 let autoRefreshTimer = null;
 
 let ultimoAcumulado = null;
-let scanBuffer = "";
-let scanTimer = null;
-const SCAN_GAP_MS = 900
+
 
 
 
@@ -67,8 +65,9 @@ function setAcumuladoSeguro(valor) {
   }
 }
 function focusBarcodeSinScroll() {
-  // No forzamos foco para evitar que el navegador mueva la pantalla.
-  // La captura del barcode se hace por teclado/pistola a nivel de documento.
+  if (!barcodeInput) return;
+
+  barcodeInput.focus({ preventScroll: true });
 }
 
 function setStatus(texto, tipo = "neutral") {
@@ -1247,103 +1246,32 @@ window.addEventListener("load", async () => {
     await cargarDetalleGeneralPorBloque(bloqueGuardado, variedadGuardada || "");
   }
 });
-async function procesarBarcodeAutomatico(codigo) {
-  const barcodeLimpio = String(codigo || "")
-    .replace(/[\r\n]/g, "")
-    .trim();
-
-  if (!barcodeLimpio) return;
-
-  if (barcodeInput) {
-    barcodeInput.value = "";
-  }
-
-  scanBuffer = "";
-
-  await escanearCodigo(barcodeLimpio);
-}
-
-// Captura global del lector de código de barras.
-// Esto permite escanear sin enfocar el input y sin que la pantalla se mueva.
-document.addEventListener("keydown", async (e) => {
-  const activo = document.activeElement;
-  const tag = activo?.tagName?.toLowerCase();
-
-  const escribiendoEnCampo =
-    tag === "input" ||
-    tag === "textarea" ||
-    tag === "select" ||
-    activo?.isContentEditable;
-
-  // Si el usuario está escribiendo en otro campo distinto al barcode,
-  // no interceptamos para no dañar filtros, selects u otros formularios.
-  if (escribiendoEnCampo && activo !== barcodeInput) {
-    return;
-  }
-
-  if (e.key === "Enter") {
-    e.preventDefault();
-
-    let codigo = "";
-
-    if (barcodeInput && barcodeInput.value.trim()) {
-      codigo = barcodeInput.value;
-    } else {
-      codigo = scanBuffer;
-    }
-
-    scanBuffer = "";
-
-    if (scanTimer) {
-      clearTimeout(scanTimer);
-      scanTimer = null;
-    }
-
-    await procesarBarcodeAutomatico(codigo);
-    return;
-  }
-
-  // Solo capturamos teclas imprimibles: números, letras y símbolos del barcode.
-  if (e.key.length === 1) {
-    e.preventDefault();
-
-    scanBuffer += e.key;
-
-    if (barcodeInput) {
-      barcodeInput.value = scanBuffer;
-    }
-
-    if (scanTimer) clearTimeout(scanTimer);
-
-    scanTimer = setTimeout(() => {
-      scanBuffer = "";
-      if (barcodeInput) barcodeInput.value = "";
-    }, SCAN_GAP_MS);
-  }
-}, true);
-
-// Permite también escribir manualmente en el input y procesar con Enter,
-// sin forzar foco ni mover la pantalla.
 if (barcodeInput) {
-  barcodeInput.setAttribute("autocomplete", "off");
-  barcodeInput.setAttribute("autocorrect", "off");
-  barcodeInput.setAttribute("autocapitalize", "off");
-  barcodeInput.setAttribute("spellcheck", "false");
+  focusBarcodeSinScroll();
+
+  barcodeInput.addEventListener("blur", () => {
+    setTimeout(() => focusBarcodeSinScroll(), 50);
+  });
 
   barcodeInput.addEventListener("keydown", async (e) => {
     if (e.key !== "Enter") return;
 
     e.preventDefault();
 
-    const codigo = barcodeInput.value
+    let codigo = barcodeInput.value
       .replace(/[\r\n]/g, "")
       .trim();
 
     barcodeInput.value = "";
-    scanBuffer = "";
 
-    if (!codigo) return;
+    if (!codigo) {
+      focusBarcodeSinScroll();
+      return;
+    }
 
     await escanearCodigo(codigo);
+
+    // dejar listo el siguiente escaneo
+    focusBarcodeSinScroll();
   });
 }
