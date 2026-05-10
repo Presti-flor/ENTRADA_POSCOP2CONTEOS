@@ -1110,38 +1110,7 @@ async function refrescarTodo() {
 
 
 
-document.addEventListener("keydown", async (e) => {
-  // Ignorar teclas especiales
-  if (
-    e.key === "Shift" ||
-    e.key === "Control" ||
-    e.key === "Alt" ||
-    e.key === "Meta"
-  ) return;
 
-  // ENTER = fin del escaneo
-  if (e.key === "Enter") {
-    const codigo = scanBuffer.trim();
-    scanBuffer = "";
-
-    if (!codigo) return;
-
-    if (barcodeInput) barcodeInput.value = "";
-
-    e.preventDefault();
-    await escanearCodigo(codigo);
-    return;
-  }
-
-  // Aceptar SOLO caracteres válidos de barcode
-  if (/^[a-zA-Z0-9\-_.]$/.test(e.key)) {
-    scanBuffer += e.key;
-
-    if (barcodeInput) {
-      barcodeInput.value = scanBuffer;
-    }
-  }
-});
 
 function verDetalleFila(btn) {
   const tr = btn.closest("tr");
