@@ -151,6 +151,25 @@
       color:#f8fafc;
     }
 
+    .scanner-hidden{
+  position:fixed !important;
+  top:0 !important;
+  left:0 !important;
+  width:1px !important;
+  height:1px !important;
+  opacity:0 !important;
+  pointer-events:none !important;
+  z-index:-1 !important;
+}
+
+.scan-display{
+  min-height:56px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  color:#94a3b8;
+}
+
     .page-sub{
       margin-top:4px;
       color:var(--muted);
@@ -891,26 +910,37 @@
         </section>
 
           <section class="card" id="escaneo">
-              <h2>Escaneo en vivo</h2>
-              <div class="scan-box">
-                <div class="field">
-                  <label for="barcode">Escanea o escribe código manualmente</label>
-                  <input class="scan-input" type="text" id="barcode" placeholder="Esperando escaneo...">
-                </div>
+          <h2>Escaneo en vivo</h2>
 
-                <div id="status-bar" class="status-bar status-neutral">
-                  Último estado: listo para escanear.
-                </div>
+          <div class="scan-box">
+            <div class="field">
+              <label>Escanea o escribe código manualmente</label>
+
+              <div id="barcode-visible" class="scan-input scan-display">
+                Esperando escaneo...
               </div>
-            </section>
+
+              <input
+                class="scanner-hidden"
+                type="text"
+                id="barcode"
+                autocomplete="off"
+                autocapitalize="off"
+                spellcheck="false"
+              >
+            </div>
+
+            <div id="status-bar" class="status-bar status-neutral">
+              Último estado: listo para escanear.
+            </div>
+          </div>
         </section>
-        </section>
-        
 
       </div>
     </main>
   </div>
-  </div>
+</div>
 
-  <script src="app.js"></script>
+<script src="app.js"></script>
 </body>
+</html>

@@ -30,6 +30,7 @@ const cardDuplicados = document.getElementById("card-duplicados");
 const cardErrores = document.getElementById("card-errores");
 const finalizarBtn = document.getElementById("finalizar-viaje-btn");
 const barcodeInput = document.getElementById("barcode");
+const barcodeVisible = document.getElementById("barcode-visible");
 const formInput = document.getElementById("form");
 const statusBar = document.getElementById("status-bar");
 const resumenVariedadBody = document.getElementById("resumen-variedad-body");
@@ -635,7 +636,13 @@ async function escanearCodigo(barcode) {
     }
 
     await conservarPosicionPantalla(async () => {
-  await refrescarTodo();
+  const x = window.scrollX;
+const y = window.scrollY;
+
+await refrescarTodo();
+
+window.scrollTo(x, y);
+focusBarcodeSinScroll();
 });
   } catch (error) {
     console.error("Error escaneando:", error);
@@ -1295,6 +1302,12 @@ if (barcodeInput) {
     }, 50);
   });
 
+  barcodeInput.addEventListener("input", () => {
+    if (barcodeVisible) {
+      barcodeVisible.textContent = barcodeInput.value || "Esperando escaneo...";
+    }
+  });
+
   barcodeInput.addEventListener("keydown", async (e) => {
     if (e.key !== "Enter") return;
 
@@ -1303,11 +1316,15 @@ if (barcodeInput) {
     const x = window.scrollX;
     const y = window.scrollY;
 
-    let codigo = barcodeInput.value
+    const codigo = String(barcodeInput.value || "")
       .replace(/[\r\n]/g, "")
       .trim();
 
     barcodeInput.value = "";
+
+    if (barcodeVisible) {
+      barcodeVisible.textContent = "Esperando escaneo...";
+    }
 
     if (!codigo) {
       focusBarcodeSinScroll();
@@ -1315,9 +1332,7 @@ if (barcodeInput) {
       return;
     }
 
-    await conservarPosicionPantalla(async () => {
-      await escanearCodigo(codigo);
-    });
+    await escanearCodigo(codigo);
 
     focusBarcodeSinScroll();
     window.scrollTo(x, y);
