@@ -1130,8 +1130,6 @@ async function procesarScanBuffer() {
   await escanearCodigo(codigo);
 }
 
-let scanBuffer = "";
-
 document.addEventListener("keydown", async (e) => {
   // Ignorar teclas especiales
   if (
