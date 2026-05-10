@@ -63,6 +63,11 @@ function setAcumuladoSeguro(valor) {
     setText(totalAcumuladoGeneral, valor);
   }
 }
+function focusBarcodeSinScroll() {
+  if (!barcodeInput) return;
+
+  barcodeInput.focus({ preventScroll: true });
+}
 
 function setStatus(texto, tipo = "neutral") {
   if (!statusBar) return;
@@ -499,6 +504,7 @@ async function activarViaje(nombre) {
 
     setStatus(`Viaje ${viajeNombre} activado`, "ok");
     iniciarAutoRefreshViaje();
+    focusBarcodeSinScroll();
   } catch (err) {
     console.error("Error activando viaje:", err);
     setStatus("Error activando viaje", "error");
@@ -1241,11 +1247,11 @@ window.addEventListener("load", async () => {
 });
 if (barcodeInput) {
   // Asegura foco permanente
-  barcodeInput.focus();
+  focusBarcodeSinScroll();
 
-  barcodeInput.addEventListener("blur", () => {
-    setTimeout(() => barcodeInput.focus(), 50);
-  });
+barcodeInput.addEventListener("blur", () => {
+  setTimeout(() => focusBarcodeSinScroll(), 50);
+});
 
   // SOLO para ver qué llega (puedes quitarlo luego)
   barcodeInput.addEventListener("input", () => {
@@ -1272,5 +1278,6 @@ if (barcodeInput) {
     if (!codigo) return;
 
     await escanearCodigo(codigo);
+    focusBarcodeSinScroll();
   });
 }
