@@ -20,11 +20,9 @@ function pedirAcceso() {
 let viajeActivo = "";
 let cacheDetalle = [];
 let autoRefreshTimer = null;
-let scanBuffer = "";
-let scanTimer = null;
 let ultimoAcumulado = null;
 
-const SCAN_GAP_MS = 900;
+
 
 const cardDuplicados = document.getElementById("card-duplicados");
 const cardErrores = document.getElementById("card-errores");
@@ -1109,41 +1107,8 @@ async function refrescarTodo() {
   }
 }
 
-function limpiarScanBuffer() {
-  scanBuffer = "";
-  if (scanTimer) {
-    clearTimeout(scanTimer);
-    scanTimer = null;
-  }
-}
 
-async function procesarScanBuffer() {
-  const codigo = String(scanBuffer || "").trim();
-  limpiarScanBuffer();
 
-  if (!codigo) return;
-
-  if (barcodeInput) {
-    barcodeInput.value = "";
-  }
-
-  await escanearCodigo(codigo);
-}
-
-barcodeInput.addEventListener("keydown", async (e) => {
-
-  if (e.key !== "Enter") return;
-
-  e.preventDefault();
-
-  const codigo = barcodeInput.value.trim();
-
-  if (!codigo) return;
-
-  barcodeInput.value = "";
-
-  await escanearCodigo(codigo);
-});
 
 function verDetalleFila(btn) {
   const tr = btn.closest("tr");
@@ -1272,3 +1237,22 @@ window.addEventListener("load", async () => {
     await cargarDetalleGeneralPorBloque(bloqueGuardado, variedadGuardada || "");
   }
 });
+
+if (barcodeInput) {
+  barcodeInput.addEventListener("keydown", async (e) => {
+    if (e.key !== "Enter") return;
+
+    e.preventDefault();
+
+    const codigo = String(barcodeInput.value || "").trim();
+
+    if (!codigo) {
+      setStatus("El barcode está vacío", "warn");
+      return;
+    }
+
+    barcodeInput.value = "";
+
+    await escanearCodigo(codigo);
+  });
+}
