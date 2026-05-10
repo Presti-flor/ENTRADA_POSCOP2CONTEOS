@@ -20,11 +20,10 @@ function pedirAcceso() {
 let viajeActivo = "";
 let cacheDetalle = [];
 let autoRefreshTimer = null;
-let scanBuffer = "";
-let scanTimer = null;
+
 let ultimoAcumulado = null;
 
-const SCAN_GAP_MS = 900;
+
 
 const cardDuplicados = document.getElementById("card-duplicados");
 const cardErrores = document.getElementById("card-errores");
@@ -1109,26 +1108,7 @@ async function refrescarTodo() {
   }
 }
 
-function limpiarScanBuffer() {
-  scanBuffer = "";
-  if (scanTimer) {
-    clearTimeout(scanTimer);
-    scanTimer = null;
-  }
-}
 
-async function procesarScanBuffer() {
-  const codigo = String(scanBuffer || "").trim();
-  limpiarScanBuffer();
-
-  if (!codigo) return;
-
-  if (barcodeInput) {
-    barcodeInput.value = "";
-  }
-
-  await escanearCodigo(codigo);
-}
 
 document.addEventListener("keydown", async (e) => {
   // Ignorar teclas especiales
@@ -1290,3 +1270,38 @@ window.addEventListener("load", async () => {
     await cargarDetalleGeneralPorBloque(bloqueGuardado, variedadGuardada || "");
   }
 });
+if (barcodeInput) {
+  // Asegura foco permanente
+  barcodeInput.focus();
+
+  barcodeInput.addEventListener("blur", () => {
+    setTimeout(() => barcodeInput.focus(), 50);
+  });
+
+  // SOLO para ver qué llega (puedes quitarlo luego)
+  barcodeInput.addEventListener("input", () => {
+    console.log("RAW INPUT:", barcodeInput.value);
+  });
+
+  barcodeInput.addEventListener("keydown", async (e) => {
+    if (e.key !== "Enter") return;
+
+    e.preventDefault();
+
+    // LEER EXACTAMENTE LO QUE EL LECTOR ESCRIBE
+    let codigo = barcodeInput.value;
+
+    // Limpieza segura (no altera el código real)
+    codigo = codigo
+      .replace(/[\r\n]/g, "")
+      .trim();
+
+    console.log("CODIGO FINAL:", codigo);
+
+    barcodeInput.value = "";
+
+    if (!codigo) return;
+
+    await escanearCodigo(codigo);
+  });
+}
