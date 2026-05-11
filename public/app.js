@@ -1185,10 +1185,12 @@ async function agregarRegistroManualDesdeResumen(data) {
 // Funciona desde cualquier parte de la página.
 // Escribe o escanea números y registra al presionar ENTER.
 // Acepta códigos desde 2 dígitos hasta más de 17.
+// Usa cola para no perder códigos escaneados rápido.
 // =====================================================
 
 let lectorBuffer = "";
 let lectorProcesando = false;
+let colaCodigos = [];
 
 function limpiarLectorGlobal() {
   lectorBuffer = "";
@@ -1225,20 +1227,66 @@ function usuarioEstaEditandoCampo() {
   return false;
 }
 
+function obtenerNumeroDesdeTecla(e) {
+  if (/^\d$/.test(e.key)) {
+    return e.key;
+  }
+
+  if (/^Numpad\d$/.test(e.code)) {
+    return e.code.replace("Numpad", "");
+  }
+
+  return null;
+}
+
+function encolarCodigo(codigoRaw) {
+  const codigo = String(codigoRaw || "")
+    .replace(/[^\d]/g, "")
+    .trim();
+
+  if (!codigo) return;
+
+  if (codigo.length < 2) {
+    setStatus(`Código demasiado corto: ${codigo}`, "warn");
+    return;
+  }
+
+  colaCodigos.push(codigo);
+  procesarColaCodigos();
+}
+
+async function procesarColaCodigos() {
+  if (lectorProcesando) return;
+
+  lectorProcesando = true;
+  escaneando = true;
+
+  try {
+    while (colaCodigos.length > 0) {
+      const codigo = colaCodigos.shift();
+      await escanearCodigo(codigo);
+    }
+  } finally {
+    lectorProcesando = false;
+    escaneando = false;
+
+    setTimeout(() => {
+      focusBarcodeSeguro();
+    }, 100);
+  }
+}
+
 document.addEventListener("keydown", async (e) => {
   if (e.ctrlKey || e.altKey || e.metaKey) return;
 
   if (usuarioEstaEditandoCampo()) return;
 
-  if (lectorProcesando) {
-    e.preventDefault();
-    return;
-  }
+  const numero = obtenerNumeroDesdeTecla(e);
 
-  if (/^\d$/.test(e.key)) {
+  if (numero !== null) {
     e.preventDefault();
 
-    lectorBuffer += e.key;
+    lectorBuffer += numero;
     mostrarLectorGlobal();
 
     return;
@@ -1265,38 +1313,18 @@ document.addEventListener("keydown", async (e) => {
   }
 
   if (e.key === "Enter" || e.key === "Tab") {
-  if (!lectorBuffer.trim()) return;
+    if (!lectorBuffer.trim() && !barcodeInput?.value) return;
 
-  e.preventDefault();
+    e.preventDefault();
 
-  const codigo = lectorBuffer
-    .replace(/[^\d]/g, "")
-    .trim();
+    const codigo = lectorBuffer || barcodeInput?.value || "";
 
-  limpiarLectorGlobal();
+    limpiarLectorGlobal();
 
-  if (!codigo) return;
-
-  if (codigo.length < 2) {
-    setStatus(`Código demasiado corto: ${codigo}`, "warn");
-    return;
+    encolarCodigo(codigo);
   }
-
-  lectorProcesando = true;
-  escaneando = true;
-
-  try {
-    await escanearCodigo(codigo);
-  } finally {
-    lectorProcesando = false;
-    escaneando = false;
-
-    setTimeout(() => {
-      focusBarcodeSeguro();
-    }, 100);
-  }
-}
 });
+
 // =====================================================
 // FALLBACK PARA PISTOLA QUE ESCRIBE DIRECTO EN EL INPUT
 // =====================================================
@@ -1319,36 +1347,11 @@ if (barcodeInput) {
 
     e.preventDefault();
 
-    if (lectorProcesando) return;
-
-    let codigo = lectorBuffer || barcodeInput.value;
-
-    codigo = String(codigo || "")
-      .replace(/[^\d]/g, "")
-      .trim();
+    const codigo = lectorBuffer || barcodeInput.value;
 
     limpiarLectorGlobal();
 
-    if (!codigo) return;
-
-    if (codigo.length < 2) {
-      setStatus(`Código demasiado corto: ${codigo}`, "warn");
-      return;
-    }
-
-    lectorProcesando = true;
-    escaneando = true;
-
-    try {
-      await escanearCodigo(codigo);
-    } finally {
-      lectorProcesando = false;
-      escaneando = false;
-
-      setTimeout(() => {
-        focusBarcodeSeguro();
-      }, 100);
-    }
+    encolarCodigo(codigo);
   });
 }
 async function refrescarDetalle() {
