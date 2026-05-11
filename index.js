@@ -60,6 +60,40 @@ function parseCode(codeRaw) {
   return { barcode: code, tipo, serial };
 }
 
+app.get("/api/viaje-activo", async (req, res) => {
+  try {
+
+    const q = `
+      SELECT nombre
+      FROM viajes
+      WHERE activo = true
+      LIMIT 1
+    `;
+
+    const r = await pool.query(q);
+
+    if (!r.rows.length) {
+      return res.json({
+        ok: false,
+        error: "No hay viaje activo"
+      });
+    }
+
+    return res.json({
+      ok: true,
+      viaje: r.rows[0].nombre
+    });
+
+  } catch (err) {
+
+    console.error(err);
+
+    return res.status(500).json({
+      ok: false,
+      error: err.message
+    });
+  }
+});
 // =====================================================
 // API VIAJES
 // =====================================================
