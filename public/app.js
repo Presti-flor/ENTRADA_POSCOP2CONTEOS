@@ -1274,8 +1274,12 @@ function verDetalleFila(btn) {
 
 
 function limpiarScannerBuffer() {
+
   scannerBuffer = "";
-  actualizarDisplayScanner();
+
+  if (barcodeVisible) {
+    barcodeVisible.textContent = "Esperando escaneo...";
+  }
 
   if (scannerTimer) {
     clearTimeout(scannerTimer);
