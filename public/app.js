@@ -64,14 +64,14 @@ const modalYaRegistradosBody = document.getElementById("modal-ya-registrados-bod
 const cerrarModalYaRegistrados = document.getElementById("cerrar-modal-ya-registrados");
 
 let cacheYaRegistrados = [];
-const cardDuplicados = document.getElementById("card-duplicados");
+
 const cardErrores = document.getElementById("card-errores");
 const cardYaRegistrados = document.getElementById("card-ya-registrados");
 
 const finalizarBtn = document.getElementById("finalizar-viaje-btn");
 const barcodeVisible = document.getElementById("barcode-visible");
 const cardDuplicados = document.getElementById("card-duplicados");
-const cardErrores = document.getElementById("card-errores");
+
 const finalizarBtn = document.getElementById("finalizar-viaje-btn");
 const barcodeVisible = document.getElementById("barcode-visible");
 const formInput = document.getElementById("form");
