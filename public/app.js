@@ -56,6 +56,9 @@ let autoRefreshTimer = null;
 let escaneando = false;
 let ultimoAcumulado = null;
 
+let duplicadosSesionActual = 0;
+let erroresSesionActual = 0;
+
 
 const modalYaRegistrados = document.getElementById("modal-ya-registrados");
 const modalYaRegistradosBody = document.getElementById("modal-ya-registrados-body");
@@ -160,6 +163,11 @@ function setStatus(texto, tipo = "neutral") {
   statusBar.textContent = texto;
   statusBar.className = `status-bar status-${tipo}`;
 }
+function pintarDuplicadosYErrores() {
+  setText(totalDuplicados, duplicadosSesionActual);
+  setText(totalErrores, erroresSesionActual);
+  actualizarAlertasResumen(duplicadosSesionActual, erroresSesionActual);
+}
 
 function mantenerFoco() {
   // No se usa foco forzado.
@@ -190,6 +198,9 @@ function actualizarAlertasResumen(duplicados, errores) {
 }
 
 function limpiarResumenViaje() {
+  duplicadosSesionActual = 0;
+erroresSesionActual = 0;
+cacheYaRegistrados = [];
   setText(totalEscaneados, 0);
   setText(totalDuplicados, 0);
   setText(totalErrores, 0);
@@ -587,6 +598,10 @@ async function activarViaje(nombre) {
     actualizarAlertasResumen(0, 0);
 
     cacheDetalle = [];
+    duplicadosSesionActual = 0;
+erroresSesionActual = 0;
+cacheYaRegistrados = [];
+pintarDuplicadosYErrores();
 
     if (detalleBody) {
       detalleBody.innerHTML = `
@@ -716,16 +731,41 @@ async function escanearCodigo(barcode) {
 }
 
     if (data.resultado === "OK") {
-      setStatus(`${barcodeLimpio} → REGISTRADO`, "ok");
-    } else if (data.resultado === "YA_REGISTRADO") {
-      setStatus(`${barcodeLimpio} → YA REGISTRADO`, "warn");
-    } else if (data.resultado === "REREGISTRADO") {
-      setStatus(`${barcodeLimpio} → RE-REGISTRADO`, "ok");
-    } else if (data.resultado === "NO_EXISTE") {
-      setStatus(`${barcodeLimpio} → NO EXISTE`, "error");
-    } else {
-      setStatus(`Escaneo procesado: ${barcodeLimpio}`, "ok");
-    }
+  setStatus(`${barcodeLimpio} → REGISTRADO`, "ok");
+
+} else if (data.resultado === "YA_REGISTRADO") {
+  duplicadosSesionActual += 1;
+
+  cacheYaRegistrados.unshift({
+    fecha: new Date().toISOString(),
+    barcode: data.data?.barcode || barcodeLimpio,
+    tipo: data.data?.tipo || "",
+    serial: data.data?.serial || "",
+    variedad: data.data?.variedad || "",
+    bloque: data.data?.bloque || "",
+    tamano: data.data?.tamano || "",
+    tallos: data.data?.tallos || "",
+    resultado: "YA_REGISTRADO",
+    observacion: data.data?.observacion || "El barcode ya existe en registros"
+  });
+
+  pintarDuplicadosYErrores();
+  renderYaRegistrados(cacheYaRegistrados);
+
+  setStatus(`${barcodeLimpio} → YA REGISTRADO`, "warn");
+
+} else if (data.resultado === "REREGISTRADO") {
+  setStatus(`${barcodeLimpio} → RE-REGISTRADO`, "ok");
+
+} else if (data.resultado === "NO_EXISTE") {
+  erroresSesionActual += 1;
+  pintarDuplicadosYErrores();
+
+  setStatus(`${barcodeLimpio} → NO EXISTE`, "error");
+
+} else {
+  setStatus(`Escaneo procesado: ${barcodeLimpio}`, "ok");
+}
 
     await conservarPosicionPantalla(async () => {
       await refrescarTodo();
@@ -794,10 +834,15 @@ async function refrescarResumen() {
     const errores = json.sesionActual?.errores ?? 0;
 
     setText(totalEscaneados, okSesion + reregSesion);
-    setText(totalDuplicados, duplicados);
-    setText(totalErrores, errores);
+    if (Number(duplicados || 0) > duplicadosSesionActual) {
+  duplicadosSesionActual = Number(duplicados || 0);
+}
 
-    actualizarAlertasResumen(duplicados, errores);
+if (Number(errores || 0) > erroresSesionActual) {
+  erroresSesionActual = Number(errores || 0);
+}
+
+pintarDuplicadosYErrores();
   } catch (err) {
     console.error("Error refrescando resumen:", err);
   }
