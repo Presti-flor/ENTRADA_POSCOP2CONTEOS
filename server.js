@@ -151,8 +151,19 @@ app.post("/api/viajes/activar", async (req, res) => {
       INSERT INTO sistema_estado (clave, valor, updated_at)
       VALUES ('viaje_activo', $1, NOW())
       ON CONFLICT (clave)
-      DO UPDATE SET valor = EXCLUDED.valor, updated_at = NOW()
+      DO UPDATE SET
+        valor = EXCLUDED.valor,
+        updated_at = NOW()
     `, [nombre]);
+
+    await pool.query(`
+      INSERT INTO sistema_estado (clave, valor, updated_at)
+      VALUES ('viaje_activo_inicio', NOW()::text, NOW())
+      ON CONFLICT (clave)
+      DO UPDATE SET
+        valor = NOW()::text,
+        updated_at = NOW()
+    `);
 
     return res.json({
       ok: true,
@@ -163,6 +174,8 @@ app.post("/api/viajes/activar", async (req, res) => {
     });
 
   } catch (err) {
+    console.error("Error activando viaje:", err);
+
     return res.status(500).json({
       ok: false,
       error: err.message
@@ -749,50 +762,73 @@ app.get("/api/general/bloque/:bloque/variedades", async (req, res) => {
 // RESUMEN DEL VIAJE EN MEMORIA
 // =====================================================
 
-app.get("/api/viajes/:nombre/resumen", async (req, res) => {
+app.get("/api/viajes/:nombre/pivot", async (req, res) => {
   try {
     const nombre = decodeURIComponent(req.params.nombre);
-    const viaje = sesionesViaje[nombre];
 
-    if (!viaje) {
+    const estado = await pool.query(`
+      SELECT
+        MAX(CASE WHEN clave = 'viaje_activo' THEN valor END) AS viaje_activo,
+        MAX(CASE WHEN clave = 'viaje_activo_inicio' THEN valor END) AS inicio
+      FROM sistema_estado
+      WHERE clave IN ('viaje_activo', 'viaje_activo_inicio')
+    `);
+
+    const viajeActivoActual = estado.rows[0]?.viaje_activo;
+    const inicio = estado.rows[0]?.inicio;
+
+    if (viajeActivoActual !== nombre || !inicio) {
       return res.json({
         ok: true,
-        viaje: { nombre, activa: false },
-        sesionActual: { ok: 0, duplicados: 0, errores: 0, reregistrados: 0, total: 0 },
-        acumulado: { ok: 0, duplicados: 0, errores: 0, reregistrados: 0, total: 0 },
+        data: []
       });
     }
 
-    const sesion = viaje.historialSesion || [];
-    const historialTotal = viaje.historial || [];
+    const r = await pool.query(`
+      SELECT
+        bloque,
+        variedad,
+        tamano,
+        tallos,
+        etapa,
+        COUNT(*) AS tabacos,
+        SUM(COALESCE(tallos,0)) AS suma_tallos
+      FROM registros
+      WHERE viaje = $1
+        AND created_at >= $2::timestamp
+      GROUP BY
+        bloque,
+        variedad,
+        tamano,
+        tallos,
+        etapa
+      ORDER BY
+        bloque ASC,
+        variedad ASC
+    `, [nombre, inicio]);
 
-    const sesionActual = {
-      total: sesion.length,
-      ok: sesion.filter((x) => x.resultado === "OK").length,
-      duplicados: sesion.filter((x) => x.resultado === "YA_REGISTRADO").length,
-      errores: sesion.filter((x) => x.resultado === "NO_EXISTE").length,
-      reregistrados: sesion.filter((x) => x.resultado === "REREGISTRADO").length,
-    };
-
-    const acumulado = {
-      total: historialTotal.length,
-      ok: viaje.acumulado.ok,
-      duplicados: viaje.acumulado.duplicados,
-      errores: viaje.acumulado.errores,
-      reregistrados: viaje.acumulado.reregistrados,
-    };
-
-    res.json({
+    return res.json({
       ok: true,
-      viaje: { nombre, activa: viaje.activa },
-      sesionActual,
-      acumulado,
+      data: r.rows.map(row => ({
+        bloque: row.bloque ?? "",
+        variedad: row.variedad ?? "",
+        tamano: row.tamano ?? "",
+        tallos: row.tallos ?? "",
+        etapa: row.etapa ?? "",
+        tabacos: Number(row.tabacos || 0),
+        suma_tallos: Number(row.suma_tallos || 0)
+      }))
     });
+
   } catch (err) {
-    res.status(500).json({ ok: false, error: err.message });
+    console.error("Error pivot:", err);
+
+    return res.status(500).json({
+      ok: false,
+      error: err.message
+    });
   }
 });
-
 // =====================================================
 // TABLA DINÁMICA DEL VIAJE EN MEMORIA
 // =====================================================
@@ -854,18 +890,79 @@ app.get("/api/viajes/:nombre/pivot", async (req, res) => {
 app.get("/api/viajes/:nombre/detalle", async (req, res) => {
   try {
     const nombre = decodeURIComponent(req.params.nombre);
-    const viaje = sesionesViaje[nombre];
 
-    if (!viaje) {
-      return res.json({ ok: true, data: [] });
+    const estado = await pool.query(`
+      SELECT
+        MAX(CASE WHEN clave = 'viaje_activo' THEN valor END) AS viaje_activo,
+        MAX(CASE WHEN clave = 'viaje_activo_inicio' THEN valor END) AS inicio
+      FROM sistema_estado
+      WHERE clave IN ('viaje_activo', 'viaje_activo_inicio')
+    `);
+
+    const viajeActivoActual = estado.rows[0]?.viaje_activo;
+    const inicio = estado.rows[0]?.inicio;
+
+    if (viajeActivoActual !== nombre || !inicio) {
+      return res.json({
+        ok: true,
+        data: []
+      });
     }
 
-    res.json({
+    const r = await pool.query(`
+      SELECT
+        barcode,
+        tipo,
+        serial,
+        variedad,
+        bloque,
+        tamano,
+        tallos,
+        etapa,
+        form_id,
+        form,
+        barcode_origen,
+        es_reregistro,
+        created_at,
+        viaje
+      FROM registros
+      WHERE viaje = $1
+        AND created_at >= $2::timestamp
+      ORDER BY created_at DESC
+      LIMIT 1000
+    `, [nombre, inicio]);
+
+    const data = r.rows.map(row => ({
+      fecha: row.created_at,
+      barcode: row.barcode,
+      tipo: row.tipo,
+      serial: row.serial,
+      variedad: row.variedad,
+      bloque: row.bloque,
+      tamano: row.tamano,
+      tallos: row.tallos,
+      etapa: row.etapa,
+      form_id: row.form_id,
+      form: row.form,
+      barcode_origen: row.barcode_origen,
+      es_reregistro: row.es_reregistro,
+      viaje: row.viaje,
+      resultado: "OK",
+      observacion: ""
+    }));
+
+    return res.json({
       ok: true,
-      data: viaje.historialSesion || [],
+      data
     });
+
   } catch (err) {
-    res.status(500).json({ ok: false, error: err.message });
+    console.error("Error detalle:", err);
+
+    return res.status(500).json({
+      ok: false,
+      error: err.message
+    });
   }
 });
 
@@ -1000,29 +1097,79 @@ app.delete("/api/registros/:barcode", async (req, res) => {
 // RESUMEN DEL VIAJE DESDE BD
 // =====================================================
 
-app.get("/api/viajes/:nombre/resumen-db", async (req, res) => {
+app.get("/api/viajes/:nombre/resumen", async (req, res) => {
   try {
     const nombre = decodeURIComponent(req.params.nombre);
 
-    const r = await pool.query(`
+    const estado = await pool.query(`
       SELECT
-        COUNT(*) FILTER (WHERE es_reregistro = false)::int AS ok,
-        COUNT(*) FILTER (WHERE es_reregistro = true)::int AS reregistrados,
-        COUNT(*)::int AS total,
-        COALESCE(SUM(tallos), 0)::int AS total_tallos
-      FROM public.registros
-      WHERE viaje = $1
-        AND (created_at AT TIME ZONE 'America/Bogota')::date =
-            (NOW() AT TIME ZONE 'America/Bogota')::date
-    `, [nombre]);
+        MAX(CASE WHEN clave = 'viaje_activo' THEN valor END) AS viaje_activo,
+        MAX(CASE WHEN clave = 'viaje_activo_inicio' THEN valor END) AS inicio
+      FROM sistema_estado
+      WHERE clave IN ('viaje_activo', 'viaje_activo_inicio')
+    `);
 
-    res.json({
+    const viajeActivoActual = estado.rows[0]?.viaje_activo;
+    const inicio = estado.rows[0]?.inicio;
+
+    if (viajeActivoActual !== nombre || !inicio) {
+      return res.json({
+        ok: true,
+        viaje: {
+          nombre,
+          activa: false
+        },
+        resumen: {
+          total: 0,
+          ok: 0,
+          duplicados: 0,
+          errores: 0
+        },
+        sesionActual: {
+          ok: 0,
+          reregistrados: 0,
+          duplicados: 0,
+          errores: 0
+        }
+      });
+    }
+
+    const r = await pool.query(`
+      SELECT COUNT(*) AS total
+      FROM registros
+      WHERE viaje = $1
+        AND created_at >= $2::timestamp
+    `, [nombre, inicio]);
+
+    const total = Number(r.rows[0]?.total || 0);
+
+    return res.json({
       ok: true,
-      data: r.rows[0],
+      viaje: {
+        nombre,
+        activa: true
+      },
+      resumen: {
+        total,
+        ok: total,
+        duplicados: 0,
+        errores: 0
+      },
+      sesionActual: {
+        ok: total,
+        reregistrados: 0,
+        duplicados: 0,
+        errores: 0
+      }
     });
+
   } catch (err) {
-    console.error("Error resumen-db:", err);
-    res.status(500).json({ ok: false, error: err.message });
+    console.error("Error resumen:", err);
+
+    return res.status(500).json({
+      ok: false,
+      error: err.message
+    });
   }
 });
 
