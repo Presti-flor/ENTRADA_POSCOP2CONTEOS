@@ -36,6 +36,8 @@ function pedirAcceso() {
 let viajeActivo = "";
 let cacheDetalle = [];
 let autoRefreshTimer = null;
+let escaneando = false;
+
 
 let ultimoAcumulado = null;
 
@@ -1318,25 +1320,21 @@ if (barcodeInput) {
   if (e.key !== "Enter") return;
 
   e.preventDefault();
-
-  bloquearScroll();
+  escaneando = true;
 
   const codigo = String(barcodeInput.value || "")
     .replace(/[\r\n]/g, "")
     .trim();
 
   barcodeInput.value = "";
-  if (barcodeVisible) barcodeVisible.textContent = "Esperando escaneo...";
 
   if (!codigo) {
-    restaurarScroll();
-    focusBarcodeSeguro();
+    escaneando = false;
     return;
   }
 
   await escanearCodigo(codigo);
 
-  restaurarScroll();
-  focusBarcodeSeguro();
+  escaneando = false;
 });
 }
