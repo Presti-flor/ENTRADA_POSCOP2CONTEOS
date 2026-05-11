@@ -66,6 +66,12 @@ const cerrarModalYaRegistrados = document.getElementById("cerrar-modal-ya-regist
 let cacheYaRegistrados = [];
 const cardDuplicados = document.getElementById("card-duplicados");
 const cardErrores = document.getElementById("card-errores");
+const cardYaRegistrados = document.getElementById("card-ya-registrados");
+
+const finalizarBtn = document.getElementById("finalizar-viaje-btn");
+const barcodeVisible = document.getElementById("barcode-visible");
+const cardDuplicados = document.getElementById("card-duplicados");
+const cardErrores = document.getElementById("card-errores");
 const finalizarBtn = document.getElementById("finalizar-viaje-btn");
 const barcodeVisible = document.getElementById("barcode-visible");
 const formInput = document.getElementById("form");
@@ -1358,10 +1364,10 @@ function limpiarScannerBuffer() {
 }
 
 
-if (cardDuplicados) {
-  cardDuplicados.classList.add("clickable-card");
+const cardYaRegistrados = document.getElementById("card-ya-registrados");
 
-  cardDuplicados.addEventListener("click", () => {
+if (cardYaRegistrados) {
+  cardYaRegistrados.addEventListener("click", () => {
     abrirModalYaRegistrados();
   });
 }
