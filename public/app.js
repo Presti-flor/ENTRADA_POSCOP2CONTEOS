@@ -1452,11 +1452,29 @@ window.addEventListener("load", async () => {
   });
 }
 
-document.addEventListener("click", () => {
-  focusBarcodeSeguro();
+document.addEventListener("click", (e) => {
+
+  const tag = e.target?.tagName?.toLowerCase();
+
+  if (
+    tag === "select" ||
+    tag === "option" ||
+    tag === "input" ||
+    tag === "textarea" ||
+    tag === "button"
+  ) {
+    return;
+  }
+
+  setTimeout(() => {
+    focusBarcodeSeguro();
+  }, 50);
 });
 
 window.addEventListener("load", () => {
-  focusBarcodeSeguro();
+
+  setTimeout(() => {
+    focusBarcodeSeguro();
+  }, 300);
 });
 });
