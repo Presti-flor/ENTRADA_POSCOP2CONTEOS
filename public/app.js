@@ -1,4 +1,3 @@
-console.log("🔥 APP NUEVA");
 let scrollBloqueado = false;
 let scrollX = 0;
 let scrollY = 0;
@@ -268,35 +267,22 @@ function limpiarConsultaGeneral() {
 }
 
 async function cargarContadorGeneralBD() {
-
   try {
+    const res = await fetch("/api/general/contador");
 
-    const response = await fetch("/api/contador-general");
-
-    if (!response.ok) {
-      throw new Error(`HTTP ${response.status}`);
+    if (!res.ok) {
+      console.error("Error cargando contador general BD: HTTP", res.status);
+      return;
     }
 
-    const data = await response.json();
+    const json = await res.json();
+    if (!json.ok) return;
 
-    const total = Number(data.total || 0);
-
-    const contadorEl = document.getElementById("contador-general-bd");
-
-    if (contadorEl) {
-      contadorEl.textContent =
-        total.toLocaleString("es-CO");
-    }
-
+    setText(contadorGeneralBd, json.total ?? 0);
+    setText(contadorTallosGeneralBd, json.total_tallos ?? 0);
   } catch (err) {
-
-    console.error(
-      "Error cargando contador general BD:",
-      err.message
-    );
-
+    console.error("Error cargando contador general BD:", err);
   }
-
 }
 
 async function cargarBloquesGenerales() {
