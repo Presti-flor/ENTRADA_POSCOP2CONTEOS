@@ -1,3 +1,4 @@
+console.log("🔥 APP NUEVA");
 let scrollBloqueado = false;
 let scrollX = 0;
 let scrollY = 0;
