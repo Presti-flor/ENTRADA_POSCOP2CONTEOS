@@ -132,8 +132,6 @@ function focusBarcodeSeguro() {
       preventScroll: true
     });
 
-    barcodeInput.click();
-
   } catch (e) {
 
     barcodeInput.focus();
@@ -144,6 +142,10 @@ function focusBarcodeSeguro() {
   requestAnimationFrame(() => {
     window.scrollTo(x, y);
   });
+
+  setTimeout(() => {
+    window.scrollTo(x, y);
+  }, 50);
 }
 
 function focusBarcodeSinScroll() {
@@ -1150,6 +1152,40 @@ async function agregarRegistroManualDesdeResumen(data) {
     console.error("Error agregando registro manual:", err);
     setStatus("Error agregando registro manual", "error");
   }
+}
+if (barcodeInput) {
+
+  barcodeInput.addEventListener("keydown", async (e) => {
+
+    if (e.key !== "Enter") return;
+
+    e.preventDefault();
+
+    const codigo = String(barcodeInput.value || "")
+      .replace(/[\r\n]/g, "")
+      .trim();
+
+    barcodeInput.value = "";
+
+    if (barcodeVisible) {
+      barcodeVisible.textContent = "Esperando escaneo...";
+    }
+
+    if (!codigo) return;
+
+    await escanearCodigo(codigo);
+
+    focusBarcodeSeguro();
+  });
+
+  barcodeInput.addEventListener("input", () => {
+
+    if (barcodeVisible) {
+
+      barcodeVisible.textContent =
+        barcodeInput.value || "Esperando escaneo...";
+    }
+  });
 }
 
 async function refrescarDetalle() {
