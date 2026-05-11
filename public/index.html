@@ -44,6 +44,23 @@
       overflow-x:hidden;
     }
 
+    .scanner-hidden{
+      position:fixed !important;
+      top:0 !important;
+      left:0 !important;
+      width:1px !important;
+      height:1px !important;
+      opacity:0 !important;
+      border:0 !important;
+      padding:0 !important;
+      margin:0 !important;
+      outline:none !important;
+      background:transparent !important;
+      color:transparent !important;
+      caret-color:transparent !important;
+      z-index:999999 !important;
+    }
+
     .ui-scale-wrap{
       transform:scale(var(--ui-scale));
       transform-origin:top left;
@@ -680,6 +697,17 @@
 </head>
 
 <body>
+
+  <input
+    class="scanner-hidden"
+    type="text"
+    id="barcode"
+    autocomplete="off"
+    autocapitalize="off"
+    spellcheck="false"
+    inputmode="none"
+  >
+
   <div class="ui-scale-wrap">
     <div class="app-shell">
 

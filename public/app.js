@@ -72,7 +72,7 @@ const totalEscaneados = document.getElementById("total-escaneados");
 const totalDuplicados = document.getElementById("total-duplicados");
 const totalErrores = document.getElementById("total-errores");
 const totalAcumuladoGeneral = document.getElementById("total-acumulado-general");
-
+const barcodeInput = document.getElementById("barcode");
 const pivotBody = document.getElementById("pivot-body");
 const detalleBody = document.getElementById("detalle-body");
 const yaRegistradosLista = document.getElementById("ya-registrados-lista");
@@ -100,8 +100,28 @@ function setAcumuladoSeguro(valor) {
 }
 
 function focusBarcodeSeguro() {
-  // Ya no se enfoca ningún input oculto.
-  // Esto evita que el navegador baje a la sección "Escaneo en vivo".
+  if (!barcodeInput) return;
+
+  const x = window.scrollX;
+  const y = window.scrollY;
+
+  try {
+    barcodeInput.focus({
+      preventScroll: true
+    });
+  } catch (e) {
+    barcodeInput.focus();
+  }
+
+  window.scrollTo(x, y);
+
+  requestAnimationFrame(() => {
+    window.scrollTo(x, y);
+  });
+
+  setTimeout(() => {
+    window.scrollTo(x, y);
+  }, 50);
 }
 
 function focusBarcodeSinScroll() {
@@ -1251,11 +1271,7 @@ function verDetalleFila(btn) {
   );
 }
 
-function actualizarDisplayScanner() {
-  if (!barcodeVisible) return;
 
-  barcodeVisible.textContent = scannerBuffer || "Esperando escaneo...";
-}
 
 function limpiarScannerBuffer() {
   scannerBuffer = "";
@@ -1267,106 +1283,8 @@ function limpiarScannerBuffer() {
   }
 }
 
-async function procesarScannerBuffer() {
-  const codigo = String(scannerBuffer || "")
-    .replace(/[\r\n]/g, "")
-    .trim();
 
-  limpiarScannerBuffer();
 
-  if (!codigo) return;
-
-  const x = window.scrollX;
-  const y = window.scrollY;
-
-  escaneando = true;
-  bloquearScroll();
-
-  await escanearCodigo(codigo);
-
-  window.scrollTo(x, y);
-
-  requestAnimationFrame(() => {
-    window.scrollTo(x, y);
-  });
-
-  setTimeout(() => {
-    window.scrollTo(x, y);
-    escaneando = false;
-    restaurarScroll();
-  }, 120);
-}
-
-function reiniciarTimerScanner() {
-  if (scannerTimer) clearTimeout(scannerTimer);
-
-  scannerTimer = setTimeout(() => {
-    // No procesa automáticamente. Solo limpia si quedó texto incompleto.
-    // El escáner normalmente envía Enter al final.
-    if (!escaneando) {
-      limpiarScannerBuffer();
-    }
-  }, SCANNER_TIMEOUT_MS);
-}
-
-function debeIgnorarTecla(e) {
-  if (e.ctrlKey || e.altKey || e.metaKey) return true;
-
-  const target = e.target;
-  const tag = target?.tagName?.toLowerCase();
-
-  if (tag === "select") return true;
-  if (tag === "textarea") return true;
-
-  if (tag === "input") {
-    const tipo = String(target.type || "").toLowerCase();
-    if (tipo !== "button" && tipo !== "submit" && tipo !== "checkbox" && tipo !== "radio") {
-      return true;
-    }
-  }
-
-  return false;
-}
-
-document.addEventListener("keydown", async (e) => {
-  if (debeIgnorarTecla(e)) return;
-
-  if (escaneando) {
-    e.preventDefault();
-    return;
-  }
-
-  if (e.key === "Enter") {
-    if (!scannerBuffer.trim()) return;
-
-    e.preventDefault();
-    await procesarScannerBuffer();
-    return;
-  }
-
-  if (e.key === "Backspace") {
-    if (!scannerBuffer) return;
-
-    e.preventDefault();
-    scannerBuffer = scannerBuffer.slice(0, -1);
-    actualizarDisplayScanner();
-    reiniciarTimerScanner();
-    return;
-  }
-
-  if (e.key === "Escape") {
-    e.preventDefault();
-    limpiarScannerBuffer();
-    return;
-  }
-
-  if (e.key.length === 1) {
-    e.preventDefault();
-    scannerBuffer += e.key;
-    actualizarDisplayScanner();
-    reiniciarTimerScanner();
-  }
-});
 
 if (finalizarBtn) {
   finalizarBtn.addEventListener("click", finalizarViaje);
@@ -1485,4 +1403,56 @@ window.addEventListener("load", async () => {
     await cargarResumenGeneralPorBloque(bloqueGuardado, variedadGuardada || "");
     await cargarDetalleGeneralPorBloque(bloqueGuardado, variedadGuardada || "");
   }
+  if (barcodeInput) {
+
+  focusBarcodeSeguro();
+
+  barcodeInput.addEventListener("input", () => {
+
+    if (barcodeVisible) {
+      barcodeVisible.textContent =
+        barcodeInput.value || "Esperando escaneo...";
+    }
+  });
+
+  barcodeInput.addEventListener("keydown", async (e) => {
+
+    if (e.key !== "Enter") return;
+
+    e.preventDefault();
+
+    const codigo = String(barcodeInput.value || "")
+      .replace(/[\r\n]/g, "")
+      .trim();
+
+    barcodeInput.value = "";
+
+    if (barcodeVisible) {
+      barcodeVisible.textContent = "Esperando escaneo...";
+    }
+
+    if (!codigo) return;
+
+    await escanearCodigo(codigo);
+
+    focusBarcodeSeguro();
+  });
+
+  barcodeInput.addEventListener("blur", () => {
+
+    if (escaneando) return;
+
+    setTimeout(() => {
+      focusBarcodeSeguro();
+    }, 100);
+  });
+}
+
+document.addEventListener("click", () => {
+  focusBarcodeSeguro();
+});
+
+window.addEventListener("load", () => {
+  focusBarcodeSeguro();
+});
 });
