@@ -1,5 +1,21 @@
-///////////////////////CLAVE///////////////////////////////
+let scrollBloqueado = false;
+let scrollX = 0;
+let scrollY = 0;
+
+function bloquearScroll() {
+  scrollX = window.scrollX;
+  scrollY = window.scrollY;
+  scrollBloqueado = true;
+}
+
+function restaurarScroll() {
+  if (!scrollBloqueado) return;
+  scrollBloqueado = false;
+  window.scrollTo(scrollX, scrollY);
+  requestAnimationFrame(() => window.scrollTo(scrollX, scrollY));
+}///////////////////////CLAVE///////////////////////////////
 const CLAVE = "123"; // cámbiala
+
 
 function pedirAcceso() {
   const guardado = localStorage.getItem("acceso_ok");
@@ -65,27 +81,17 @@ function setAcumuladoSeguro(valor) {
     setText(totalAcumuladoGeneral, valor);
   }
 }
-function focusBarcodeSinScroll() {
+function focusBarcodeSeguro() {
   if (!barcodeInput) return;
 
   const x = window.scrollX;
   const y = window.scrollY;
 
-  try {
-    barcodeInput.focus({ preventScroll: true });
-  } catch (e) {
-    barcodeInput.focus();
-  }
-
-  window.scrollTo(x, y);
+  barcodeInput.focus({ preventScroll: true });
 
   requestAnimationFrame(() => {
     window.scrollTo(x, y);
   });
-
-  setTimeout(() => {
-    window.scrollTo(x, y);
-  }, 50);
 }
 
 function conservarPosicionPantalla(fn) {
@@ -448,14 +454,19 @@ function iniciarAutoRefreshViaje() {
   if (autoRefreshTimer) clearInterval(autoRefreshTimer);
 
   autoRefreshTimer = setInterval(async () => {
-    if (!viajeActivo) return;
+  if (!viajeActivo || scrollBloqueado) return;
 
-    await refrescarResumen();
-    await refrescarDetalle();
-    await refrescarPivot();
-    await refrescarResumenDesdeBD();
-    await cargarContadorGeneralBD();
-  }, 3000);
+  const x = window.scrollX;
+  const y = window.scrollY;
+
+  await refrescarResumen();
+  await refrescarDetalle();
+  await refrescarPivot();
+  await refrescarResumenDesdeBD();
+  await cargarContadorGeneralBD();
+
+  window.scrollTo(x, y);
+}, 3000);
 }
 
 function detenerAutoRefreshViaje() {
@@ -1292,15 +1303,7 @@ window.addEventListener("load", async () => {
 if (barcodeInput) {
   focusBarcodeSinScroll();
 
-  barcodeInput.addEventListener("blur", () => {
-    const x = window.scrollX;
-    const y = window.scrollY;
-
-    setTimeout(() => {
-      focusBarcodeSinScroll();
-      window.scrollTo(x, y);
-    }, 50);
-  });
+ 
 
   barcodeInput.addEventListener("input", () => {
     if (barcodeVisible) {
@@ -1309,32 +1312,28 @@ if (barcodeInput) {
   });
 
   barcodeInput.addEventListener("keydown", async (e) => {
-    if (e.key !== "Enter") return;
+  if (e.key !== "Enter") return;
 
-    e.preventDefault();
+  e.preventDefault();
 
-    const x = window.scrollX;
-    const y = window.scrollY;
+  bloquearScroll();
 
-    const codigo = String(barcodeInput.value || "")
-      .replace(/[\r\n]/g, "")
-      .trim();
+  const codigo = String(barcodeInput.value || "")
+    .replace(/[\r\n]/g, "")
+    .trim();
 
-    barcodeInput.value = "";
+  barcodeInput.value = "";
+  if (barcodeVisible) barcodeVisible.textContent = "Esperando escaneo...";
 
-    if (barcodeVisible) {
-      barcodeVisible.textContent = "Esperando escaneo...";
-    }
+  if (!codigo) {
+    restaurarScroll();
+    focusBarcodeSeguro();
+    return;
+  }
 
-    if (!codigo) {
-      focusBarcodeSinScroll();
-      window.scrollTo(x, y);
-      return;
-    }
+  await escanearCodigo(codigo);
 
-    await escanearCodigo(codigo);
-
-    focusBarcodeSinScroll();
-    window.scrollTo(x, y);
-  });
+  restaurarScroll();
+  focusBarcodeSeguro();
+});
 }
