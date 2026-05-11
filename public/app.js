@@ -267,21 +267,34 @@ function limpiarConsultaGeneral() {
 }
 
 async function cargarContadorGeneralBD() {
+
   try {
-    const res = await fetch("/api/general/contador");
+
+    const res = await fetch("/api/contador-general");
 
     if (!res.ok) {
-      console.error("Error cargando contador general BD: HTTP", res.status);
-      return;
+      throw new Error(`HTTP ${res.status}`);
     }
 
     const json = await res.json();
-    if (!json.ok) return;
 
-    setText(contadorGeneralBd, json.total ?? 0);
-    setText(contadorTallosGeneralBd, json.total_tallos ?? 0);
+    console.log("CONTADOR GENERAL:", json);
+
+    const total = Number(json.total || 0);
+
+    const el = document.getElementById("contador-general-bd");
+
+    if (el) {
+      el.textContent = total.toLocaleString("es-CO");
+    }
+
   } catch (err) {
-    console.error("Error cargando contador general BD:", err);
+
+    console.error(
+      "Error cargando contador general BD:",
+      err.message
+    );
+
   }
 }
 
