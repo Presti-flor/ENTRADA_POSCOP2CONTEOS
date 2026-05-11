@@ -144,7 +144,10 @@ function actualizarAlertasResumen(duplicados, errores) {
     cardErrores.classList.toggle("alerta-errores", Number(errores || 0) > 0);
   }
 }
-
+// Compatibilidad con código viejo
+function focusBarcodeSinScroll() {
+  focusBarcodeSeguro();
+}
 function limpiarResumenViaje() {
   setText(totalEscaneados, 0);
   setText(totalDuplicados, 0);
