@@ -63,16 +63,10 @@ function parseCode(codeRaw) {
 app.get("/api/viaje-activo", async (req, res) => {
   try {
 
-    const q = `
-      SELECT nombre
-      FROM viajes
-      WHERE activo = true
-      LIMIT 1
-    `;
+    const viajeActivo = Object.keys(sesionesViaje)
+      .find(nombre => sesionesViaje[nombre]?.activa === true);
 
-    const r = await pool.query(q);
-
-    if (!r.rows.length) {
+    if (!viajeActivo) {
       return res.json({
         ok: false,
         error: "No hay viaje activo"
@@ -81,7 +75,7 @@ app.get("/api/viaje-activo", async (req, res) => {
 
     return res.json({
       ok: true,
-      viaje: r.rows[0].nombre
+      viaje: viajeActivo
     });
 
   } catch (err) {
