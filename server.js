@@ -130,23 +130,44 @@ app.get("/api/viajes", (_req, res) => {
   });
 });
 
-app.post("/api/viajes/activar", (req, res) => {
-  const nombre = String(req.body.nombre || "").trim();
+app.post("/api/viajes/activar", async (req, res) => {
+  try {
+    const nombre = String(req.body.nombre || "").trim();
 
-  if (!nombre) {
-    return res.status(400).json({ ok: false, error: "Falta nombre del viaje" });
+    if (!nombre) {
+      return res.status(400).json({
+        ok: false,
+        error: "Falta nombre"
+      });
+    }
+
+    Object.keys(sesionesViaje).forEach(v => {
+      sesionesViaje[v].activa = false;
+    });
+
+    asegurarViaje(nombre).activa = true;
+
+    await pool.query(`
+      INSERT INTO sistema_estado (clave, valor, updated_at)
+      VALUES ('viaje_activo', $1, NOW())
+      ON CONFLICT (clave)
+      DO UPDATE SET valor = EXCLUDED.valor, updated_at = NOW()
+    `, [nombre]);
+
+    return res.json({
+      ok: true,
+      data: {
+        nombre,
+        activa: true
+      }
+    });
+
+  } catch (err) {
+    return res.status(500).json({
+      ok: false,
+      error: err.message
+    });
   }
-
-  const viaje = asegurarViaje(nombre);
-  viaje.activa = true;
-  viaje.historialSesion = [];
-
-  viajeActivoGlobal = nombre;
-
-  res.json({
-    ok: true,
-    data: { nombre, activa: true, viajeActivoGlobal },
-  });
 });
 
 app.post("/api/viajes/finalizar", (req, res) => {
@@ -1139,7 +1160,9 @@ app.post("/api/registros/manual", async (req, res) => {
     });
   }
 });
-
+// =====================================================
+// VIAJE ACTIVO DESDE POSTGRESQL
+// ====================================================
 app.listen(port, () => {
   console.log(`✅ Servidor activo en http://localhost:${port}`);
 });

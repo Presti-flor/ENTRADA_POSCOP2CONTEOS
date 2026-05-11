@@ -60,13 +60,16 @@ function parseCode(codeRaw) {
   return { barcode: code, tipo, serial };
 }
 
-app.get("/api/viaje-activo", async (req, res) => {
+app.get("/api/viaje-activo", async (_req, res) => {
   try {
+    const r = await pool.query(`
+      SELECT valor
+      FROM sistema_estado
+      WHERE clave = 'viaje_activo'
+      LIMIT 1
+    `);
 
-    const viajeActivo = Object.keys(sesionesViaje)
-      .find(nombre => sesionesViaje[nombre]?.activa === true);
-
-    if (!viajeActivo) {
+    if (!r.rows.length) {
       return res.json({
         ok: false,
         error: "No hay viaje activo"
@@ -75,13 +78,10 @@ app.get("/api/viaje-activo", async (req, res) => {
 
     return res.json({
       ok: true,
-      viaje: viajeActivo
+      viaje: r.rows[0].valor
     });
 
   } catch (err) {
-
-    console.error(err);
-
     return res.status(500).json({
       ok: false,
       error: err.message
@@ -263,36 +263,32 @@ app.post("/api/escanear", async (req, res) => {
 app.get("/api/viajes/:nombre/resumen", async (req, res) => {
   try {
     const nombre = decodeURIComponent(req.params.nombre);
-    const viaje = sesionesViaje[nombre];
 
-    if (!viaje) {
-      return res.json({
-        ok: true,
-        viaje: { nombre, activa: false },
-        resumen: { ok: 0, duplicados: 0, errores: 0, total: 0 }
-      });
-    }
+    const r = await pool.query(`
+      SELECT COUNT(*) AS total
+      FROM registros
+      WHERE viaje = $1
+    `, [nombre]);
 
-    const historial = viaje.historial;
+    const total = Number(r.rows[0]?.total || 0);
 
-    const resumen = {
-      total: historial.length,
-      ok: historial.filter(x => x.resultado === "OK").length,
-      duplicados: historial.filter(x => x.resultado === "YA_REGISTRADO").length,
-      errores: historial.filter(x => x.resultado === "NO_EXISTE").length
-    };
-
-    res.json({
+    return res.json({
       ok: true,
-      viaje: { nombre, activa: viaje.activa },
-      resumen
+      sesionActual: {
+        ok: total,
+        reregistrados: 0,
+        duplicados: 0,
+        errores: 0
+      }
     });
 
   } catch (err) {
-    res.status(500).json({ ok: false, error: err.message });
+    return res.status(500).json({
+      ok: false,
+      error: err.message
+    });
   }
 });
-
 // =====================================================
 // TABLA DINÁMICA DEL VIAJE
 // =====================================================
