@@ -10,12 +10,26 @@ function bloquearScroll() {
 
 function restaurarScroll() {
   if (!scrollBloqueado) return;
-  scrollBloqueado = false;
-  window.scrollTo(scrollX, scrollY);
-  requestAnimationFrame(() => window.scrollTo(scrollX, scrollY));
-}///////////////////////CLAVE///////////////////////////////
-const CLAVE = "123"; // cámbiala
 
+  const x = scrollX;
+  const y = scrollY;
+
+  scrollBloqueado = false;
+
+  window.scrollTo(x, y);
+
+  requestAnimationFrame(() => {
+    window.scrollTo(x, y);
+  });
+
+  setTimeout(() => {
+    window.scrollTo(x, y);
+  }, 80);
+}
+
+/////////////////////// CLAVE ///////////////////////////////
+
+const CLAVE = "123"; // cámbiala
 
 function pedirAcceso() {
   const guardado = localStorage.getItem("acceso_ok");
@@ -32,17 +46,15 @@ function pedirAcceso() {
   alert("Acceso denegado");
   location.reload();
   return false;
-}/////////////////////// CLAVE////////////////////////////////
+}
+
+/////////////////////// CLAVE ////////////////////////////////
+
 let viajeActivo = "";
 let cacheDetalle = [];
 let autoRefreshTimer = null;
 let escaneando = false;
-
-
 let ultimoAcumulado = null;
-
-
-
 
 const cardDuplicados = document.getElementById("card-duplicados");
 const cardErrores = document.getElementById("card-errores");
@@ -83,34 +95,53 @@ function setAcumuladoSeguro(valor) {
     setText(totalAcumuladoGeneral, valor);
   }
 }
+
 function focusBarcodeSeguro() {
   if (!barcodeInput) return;
 
   const x = window.scrollX;
   const y = window.scrollY;
 
-  barcodeInput.focus({ preventScroll: true });
+  try {
+    barcodeInput.focus({ preventScroll: true });
+  } catch (e) {
+    barcodeInput.focus();
+  }
+
+  window.scrollTo(x, y);
 
   requestAnimationFrame(() => {
     window.scrollTo(x, y);
   });
+
+  setTimeout(() => {
+    window.scrollTo(x, y);
+  }, 100);
 }
 
 function conservarPosicionPantalla(fn) {
   const x = window.scrollX;
   const y = window.scrollY;
 
-  return Promise.resolve(fn()).finally(() => {
-    window.scrollTo(x, y);
+  bloquearScroll();
 
-    requestAnimationFrame(() => {
+  return Promise.resolve(fn())
+    .finally(() => {
       window.scrollTo(x, y);
+
+      requestAnimationFrame(() => {
+        window.scrollTo(x, y);
+      });
+
+      setTimeout(() => {
+        window.scrollTo(x, y);
+      }, 50);
+
+      setTimeout(() => {
+        window.scrollTo(x, y);
+        restaurarScroll();
+      }, 150);
     });
-
-    setTimeout(() => {
-      window.scrollTo(x, y);
-    }, 80);
-  });
 }
 
 function setStatus(texto, tipo = "neutral") {
@@ -146,10 +177,12 @@ function actualizarAlertasResumen(duplicados, errores) {
     cardErrores.classList.toggle("alerta-errores", Number(errores || 0) > 0);
   }
 }
+
 // Compatibilidad con código viejo
 function focusBarcodeSinScroll() {
   focusBarcodeSeguro();
 }
+
 function limpiarResumenViaje() {
   setText(totalEscaneados, 0);
   setText(totalDuplicados, 0);
@@ -241,9 +274,11 @@ async function cargarBloquesGenerales() {
       const option = document.createElement("option");
       option.value = String(bloque);
       option.textContent = String(bloque);
+
       if (String(bloque) === String(seleccionado)) {
         option.selected = true;
       }
+
       bloqueGeneralSelect.appendChild(option);
     });
   } catch (err) {
@@ -264,6 +299,7 @@ async function cargarVariedadesGeneralesPorBloque(bloque, variedadSeleccionada =
     if (!res.ok) return;
 
     const json = await res.json();
+
     variedadGeneralSelect.innerHTML = `<option value="">Seleccionar variedad</option>`;
 
     if (!json.ok) return;
@@ -272,9 +308,11 @@ async function cargarVariedadesGeneralesPorBloque(bloque, variedadSeleccionada =
       const option = document.createElement("option");
       option.value = variedad;
       option.textContent = variedad;
+
       if (variedadSeleccionada && variedadSeleccionada === variedad) {
         option.selected = true;
       }
+
       variedadGeneralSelect.appendChild(option);
     });
   } catch (err) {
@@ -296,6 +334,7 @@ async function cargarResumenGeneralPorBloque(bloque, variedad = "") {
       : `/api/general/bloque/${encodeURIComponent(bloque)}`;
 
     const res = await fetch(url);
+
     if (!res.ok) {
       setHTML(generalBloqueBody, `
         <tr>
@@ -320,6 +359,7 @@ async function cargarResumenGeneralPorBloque(bloque, variedad = "") {
 
     json.data.forEach((row) => {
       const tr = document.createElement("tr");
+
       tr.innerHTML = `
         <td>${row.bloque ?? ""}</td>
         <td>${row.variedad ?? ""}</td>
@@ -329,6 +369,7 @@ async function cargarResumenGeneralPorBloque(bloque, variedad = "") {
         <td class="cell-green">${row.tabacos ?? 0}</td>
         <td class="cell-blue">${row.suma_tallos ?? 0}</td>
       `;
+
       generalBloqueBody.appendChild(tr);
     });
   } catch (err) {
@@ -358,6 +399,7 @@ async function cargarDetalleGeneralPorBloque(bloque, variedad = "") {
       : `/api/general/bloque/${encodeURIComponent(bloque)}/detalle`;
 
     const res = await fetch(url);
+
     if (!res.ok) {
       setHTML(generalBloqueDetalleBody, `
         <tr>
@@ -386,6 +428,7 @@ async function cargarDetalleGeneralPorBloque(bloque, variedad = "") {
         : "";
 
       const tr = document.createElement("tr");
+
       tr.innerHTML = `
         <td>${fecha}</td>
         <td>${row.barcode ?? ""}</td>
@@ -399,8 +442,13 @@ async function cargarDetalleGeneralPorBloque(bloque, variedad = "") {
         <td>${row.form ?? ""}</td>
         <td>${row.barcode_origen ?? ""}</td>
         <td>${row.es_reregistro === true ? "Sí" : "No"}</td>
-        <td><button class="btn-delete-general" data-barcode="${row.barcode}">Eliminar</button></td>
+        <td>
+          <button class="btn-delete-general" data-barcode="${row.barcode}">
+            Eliminar
+          </button>
+        </td>
       `;
+
       generalBloqueDetalleBody.appendChild(tr);
     });
 
@@ -425,6 +473,7 @@ async function cargarViajes() {
 
   try {
     const res = await fetch("/api/viajes");
+
     if (!res.ok) {
       contenedor.innerHTML = "";
       return;
@@ -441,6 +490,7 @@ async function cargarViajes() {
 
     json.data.forEach((nombre) => {
       const btn = document.createElement("button");
+
       btn.className = "btn-viaje";
       btn.textContent = nombre;
 
@@ -459,19 +509,23 @@ function iniciarAutoRefreshViaje() {
   if (autoRefreshTimer) clearInterval(autoRefreshTimer);
 
   autoRefreshTimer = setInterval(async () => {
-  if (!viajeActivo || scrollBloqueado) return;
+    if (!viajeActivo || scrollBloqueado || escaneando) return;
 
-  const x = window.scrollX;
-  const y = window.scrollY;
+    const x = window.scrollX;
+    const y = window.scrollY;
 
-  await refrescarResumen();
-  await refrescarDetalle();
-  await refrescarPivot();
-  await refrescarResumenDesdeBD();
-  await cargarContadorGeneralBD();
+    await refrescarResumen();
+    await refrescarDetalle();
+    await refrescarPivot();
+    await refrescarResumenDesdeBD();
+    await cargarContadorGeneralBD();
 
-  window.scrollTo(x, y);
-}, 3000);
+    window.scrollTo(x, y);
+
+    requestAnimationFrame(() => {
+      window.scrollTo(x, y);
+    });
+  }, 3000);
 }
 
 function detenerAutoRefreshViaje() {
@@ -492,8 +546,12 @@ async function activarViaje(nombre) {
 
     const res = await fetch("/api/viajes/activar", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ nombre: viajeNombre }),
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        nombre: viajeNombre
+      })
     });
 
     const json = await res.json();
@@ -509,16 +567,17 @@ async function activarViaje(nombre) {
 
     document.querySelectorAll(".btn-viaje").forEach((b) => {
       b.classList.remove("activo");
+
       if (b.textContent === viajeNombre) {
         b.classList.add("activo");
       }
     });
 
     setText(viajeActivoLabel, viajeNombre);
-
     setText(totalEscaneados, 0);
     setText(totalDuplicados, 0);
     setText(totalErrores, 0);
+
     actualizarAlertasResumen(0, 0);
 
     cacheDetalle = [];
@@ -555,6 +614,7 @@ async function activarViaje(nombre) {
     await cargarContadorGeneralBD();
 
     setStatus(`Viaje ${viajeNombre} activado`, "ok");
+
     iniciarAutoRefreshViaje();
     focusBarcodeSinScroll();
   } catch (err) {
@@ -574,8 +634,12 @@ async function finalizarViaje() {
 
     const res = await fetch("/api/viajes/finalizar", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ nombre: nombreFinalizar }),
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        nombre: nombreFinalizar
+      })
     });
 
     const json = await res.json();
@@ -586,6 +650,7 @@ async function finalizarViaje() {
     }
 
     setStatus(`Viaje ${nombreFinalizar} finalizado`, "ok");
+
     viajeActivo = "";
     guardarEstadoUI();
     detenerAutoRefreshViaje();
@@ -622,13 +687,13 @@ async function escanearCodigo(barcode) {
     const res = await fetch("/api/escanear", {
       method: "POST",
       headers: {
-        "Content-Type": "application/json",
+        "Content-Type": "application/json"
       },
       body: JSON.stringify({
         barcode: barcodeLimpio,
         viaje: viajeActivo,
         form: formInput?.value?.trim() || ""
-      }),
+      })
     });
 
     const data = await res.json();
@@ -652,14 +717,9 @@ async function escanearCodigo(barcode) {
     }
 
     await conservarPosicionPantalla(async () => {
-  const x = window.scrollX;
-const y = window.scrollY;
-
-await refrescarTodo();
-
-window.scrollTo(x, y);
-focusBarcodeSinScroll();
-});
+      await refrescarTodo();
+      focusBarcodeSinScroll();
+    });
   } catch (error) {
     console.error("Error escaneando:", error);
     setStatus("Error escaneando", "error");
@@ -679,12 +739,12 @@ async function reregistrarCodigo(barcodeOriginal) {
     const res = await fetch("/api/reregistrar", {
       method: "POST",
       headers: {
-        "Content-Type": "application/json",
+        "Content-Type": "application/json"
       },
       body: JSON.stringify({
         viaje: viajeActivo,
-        barcode: barcodeOriginal,
-      }),
+        barcode: barcodeOriginal
+      })
     });
 
     const json = await res.json();
@@ -697,7 +757,10 @@ async function reregistrarCodigo(barcodeOriginal) {
 
     setStatus(`${barcodeOriginal} → RE-REGISTRADO como ${json.data.barcode}`, "ok");
 
-    await refrescarTodo();
+    await conservarPosicionPantalla(async () => {
+      await refrescarTodo();
+      focusBarcodeSinScroll();
+    });
   } catch (err) {
     console.error("Error en re-registro:", err);
     setStatus("Error en re-registro", "error");
@@ -736,6 +799,7 @@ async function refrescarResumenDesdeBD() {
 
   try {
     const res = await fetch(`/api/viajes/${encodeURIComponent(viajeActivo)}/resumen-db`);
+
     if (!res.ok) {
       console.error("Error refrescando resumen DB: HTTP", res.status);
       return;
@@ -802,7 +866,9 @@ async function refrescarPivot() {
         <td>${row.etapa ?? ""}</td>
         <td class="cell-green">${row.tabacos ?? 0}</td>
         <td class="cell-blue">${row.suma_tallos ?? 0}</td>
-        <td><button onclick="verDetalleFila(this)">Ver</button></td>
+        <td>
+          <button onclick="verDetalleFila(this)">Ver</button>
+        </td>
       `;
 
       pivotBody.appendChild(tr);
@@ -986,6 +1052,7 @@ function renderDetalle(data) {
         : (row.observacion ?? "");
 
     const tr = document.createElement("tr");
+
     tr.innerHTML = `
       <td>${fecha}</td>
       <td>${viajeActivo}</td>
@@ -999,15 +1066,16 @@ function renderDetalle(data) {
       <td>${observacionTexto}</td>
       <td>${acciones}</td>
     `;
+
     detalleBody.appendChild(tr);
   });
 
   detalleBody.querySelectorAll(".btn-delete").forEach((btn) => {
-  btn.addEventListener("click", async () => {
-    const barcode = btn.dataset.barcode;
-    await eliminarRegistroReal(barcode);
+    btn.addEventListener("click", async () => {
+      const barcode = btn.dataset.barcode;
+      await eliminarRegistroReal(barcode);
+    });
   });
-});
 
   detalleBody.querySelectorAll(".btn-reregistrar-tabla").forEach((btn) => {
     btn.addEventListener("click", async () => {
@@ -1016,6 +1084,7 @@ function renderDetalle(data) {
     });
   });
 }
+
 async function agregarRegistroManualDesdeResumen(data) {
   if (!viajeActivo) {
     setStatus("Debes activar un viaje antes de agregar registros", "warn");
@@ -1052,7 +1121,10 @@ async function agregarRegistroManualDesdeResumen(data) {
       "ok"
     );
 
-    await refrescarTodo();
+    await conservarPosicionPantalla(async () => {
+      await refrescarTodo();
+      focusBarcodeSinScroll();
+    });
   } catch (err) {
     console.error("Error agregando registro manual:", err);
     setStatus("Error agregando registro manual", "error");
@@ -1104,7 +1176,7 @@ async function eliminarRegistro(idLocal) {
 
   try {
     const res = await fetch(`/api/viajes/${encodeURIComponent(viajeActivo)}/detalle/${idLocal}`, {
-      method: "DELETE",
+      method: "DELETE"
     });
 
     const json = await res.json();
@@ -1115,7 +1187,11 @@ async function eliminarRegistro(idLocal) {
     }
 
     setStatus("Registro eliminado del viaje actual", "ok");
-    await refrescarTodo();
+
+    await conservarPosicionPantalla(async () => {
+      await refrescarTodo();
+      focusBarcodeSinScroll();
+    });
   } catch (err) {
     console.error("Error eliminando registro:", err);
     setStatus("Error al eliminar registro", "error");
@@ -1140,15 +1216,19 @@ async function eliminarRegistroReal(barcode) {
 
     setStatus(`Registro ${barcode} eliminado de la base de datos`, "ok");
 
-    await refrescarTodo();
+    await conservarPosicionPantalla(async () => {
+      await refrescarTodo();
 
-    const bloque = bloqueGeneralSelect?.value || "";
-    const variedad = variedadGeneralSelect?.value || "";
+      const bloque = bloqueGeneralSelect?.value || "";
+      const variedad = variedadGeneralSelect?.value || "";
 
-    if (bloque) {
-      await cargarResumenGeneralPorBloque(bloque, variedad);
-      await cargarDetalleGeneralPorBloque(bloque, variedad);
-    }
+      if (bloque) {
+        await cargarResumenGeneralPorBloque(bloque, variedad);
+        await cargarDetalleGeneralPorBloque(bloque, variedad);
+      }
+
+      focusBarcodeSinScroll();
+    });
   } catch (err) {
     console.error("Error eliminando registro real:", err);
     setStatus("Error eliminando de la base de datos", "error");
@@ -1173,10 +1253,6 @@ async function refrescarTodo() {
     await cargarDetalleGeneralPorBloque(bloqueSeleccionado, variedadSeleccionada);
   }
 }
-
-
-
-
 
 function verDetalleFila(btn) {
   const tr = btn.closest("tr");
@@ -1208,14 +1284,17 @@ if (bloqueGeneralSelect) {
     const bloque = bloqueGeneralSelect.value;
 
     await cargarVariedadesGeneralesPorBloque(bloque, "");
+
     if (variedadGeneralSelect) {
       variedadGeneralSelect.value = "";
     }
 
     guardarEstadoUI();
 
-    await cargarResumenGeneralPorBloque(bloque, "");
-    await cargarDetalleGeneralPorBloque(bloque, "");
+    await conservarPosicionPantalla(async () => {
+      await cargarResumenGeneralPorBloque(bloque, "");
+      await cargarDetalleGeneralPorBloque(bloque, "");
+    });
   });
 }
 
@@ -1226,16 +1305,20 @@ if (variedadGeneralSelect) {
 
     guardarEstadoUI();
 
-    await cargarResumenGeneralPorBloque(bloque, variedad);
-    await cargarDetalleGeneralPorBloque(bloque, variedad);
+    await conservarPosicionPantalla(async () => {
+      await cargarResumenGeneralPorBloque(bloque, variedad);
+      await cargarDetalleGeneralPorBloque(bloque, variedad);
+    });
   });
 }
 
 window.addEventListener("load", async () => {
   if (!pedirAcceso()) return;
+
   await cargarContadorGeneralBD();
   await cargarBloquesGenerales();
   await cargarViajes();
+
   limpiarResumenViaje();
   limpiarConsultaGeneral();
 
@@ -1243,6 +1326,7 @@ window.addEventListener("load", async () => {
 
   if (viajeGuardado) {
     viajeActivo = viajeGuardado;
+
     setText(viajeActivoLabel, viajeGuardado);
 
     document.querySelectorAll(".btn-viaje").forEach((b) => {
@@ -1256,6 +1340,7 @@ window.addEventListener("load", async () => {
     setText(totalEscaneados, 0);
     setText(totalDuplicados, 0);
     setText(totalErrores, 0);
+
     actualizarAlertasResumen(0, 0);
 
     cacheDetalle = [];
@@ -1290,11 +1375,13 @@ window.addEventListener("load", async () => {
 
     await refrescarResumenDesdeBD();
     await cargarContadorGeneralBD();
+
     iniciarAutoRefreshViaje();
   }
 
   if (bloqueGuardado) {
     bloqueGeneralSelect.value = bloqueGuardado;
+
     await cargarVariedadesGeneralesPorBloque(bloqueGuardado, variedadGuardada || "");
 
     if (variedadGuardada) {
@@ -1304,11 +1391,12 @@ window.addEventListener("load", async () => {
     await cargarResumenGeneralPorBloque(bloqueGuardado, variedadGuardada || "");
     await cargarDetalleGeneralPorBloque(bloqueGuardado, variedadGuardada || "");
   }
+
+  focusBarcodeSinScroll();
 });
+
 if (barcodeInput) {
   focusBarcodeSinScroll();
-
- 
 
   barcodeInput.addEventListener("input", () => {
     if (barcodeVisible) {
@@ -1317,24 +1405,47 @@ if (barcodeInput) {
   });
 
   barcodeInput.addEventListener("keydown", async (e) => {
-  if (e.key !== "Enter") return;
+    if (e.key !== "Enter") return;
 
-  e.preventDefault();
-  escaneando = true;
+    e.preventDefault();
 
-  const codigo = String(barcodeInput.value || "")
-    .replace(/[\r\n]/g, "")
-    .trim();
+    const x = window.scrollX;
+    const y = window.scrollY;
 
-  barcodeInput.value = "";
+    escaneando = true;
+    bloquearScroll();
 
-  if (!codigo) {
-    escaneando = false;
-    return;
-  }
+    const codigo = String(barcodeInput.value || "")
+      .replace(/[\r\n]/g, "")
+      .trim();
 
-  await escanearCodigo(codigo);
+    barcodeInput.value = "";
 
-  escaneando = false;
-});
+    if (barcodeVisible) {
+      barcodeVisible.textContent = "Esperando escaneo...";
+    }
+
+    if (!codigo) {
+      escaneando = false;
+      window.scrollTo(x, y);
+      restaurarScroll();
+      focusBarcodeSinScroll();
+      return;
+    }
+
+    await escanearCodigo(codigo);
+
+    window.scrollTo(x, y);
+
+    requestAnimationFrame(() => {
+      window.scrollTo(x, y);
+    });
+
+    setTimeout(() => {
+      window.scrollTo(x, y);
+      escaneando = false;
+      restaurarScroll();
+      focusBarcodeSinScroll();
+    }, 120);
+  });
 }
