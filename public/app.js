@@ -100,7 +100,28 @@ function setAcumuladoSeguro(valor) {
 }
 
 function focusBarcodeSeguro() {
+
   if (!barcodeInput) return;
+
+  const activo = document.activeElement;
+  const tag = activo?.tagName?.toLowerCase();
+
+  // NO ROBAR FOCO A CONTROLES
+  if (
+    tag === "select" ||
+    tag === "textarea" ||
+    tag === "button"
+  ) {
+    return;
+  }
+
+  // NO ROBAR FOCO SI ES INPUT NORMAL
+  if (
+    tag === "input" &&
+    activo !== barcodeInput
+  ) {
+    return;
+  }
 
   const x = window.scrollX;
   const y = window.scrollY;
@@ -1294,24 +1315,6 @@ if (finalizarBtn) {
   finalizarBtn.addEventListener("click", finalizarViaje);
 }
 
-if (bloqueGeneralSelect) {
-  bloqueGeneralSelect.addEventListener("change", async () => {
-    const bloque = bloqueGeneralSelect.value;
-
-    await cargarVariedadesGeneralesPorBloque(bloque, "");
-
-    if (variedadGeneralSelect) {
-      variedadGeneralSelect.value = "";
-    }
-
-    guardarEstadoUI();
-
-    await conservarPosicionPantalla(async () => {
-      await cargarResumenGeneralPorBloque(bloque, "");
-      await cargarDetalleGeneralPorBloque(bloque, "");
-    });
-  });
-}
 
 if (variedadGeneralSelect) {
   variedadGeneralSelect.addEventListener("change", async () => {
@@ -1494,18 +1497,20 @@ document.addEventListener("click", (e) => {
 
   const tag = target.tagName?.toLowerCase();
 
-  const dentroConsulta =
-    target.closest("#consulta") ||
-    target.closest("#bloque-general-select") ||
-    target.closest("#variedad-general-select");
-
+  // NO AUTOFOCUS EN CONTROLES
   if (
-    dentroConsulta ||
     tag === "select" ||
     tag === "option" ||
-    tag === "input" ||
-    tag === "textarea" ||
-    tag === "button"
+    tag === "button" ||
+    tag === "textarea"
+  ) {
+    return;
+  }
+
+  // INPUT NORMAL
+  if (
+    tag === "input" &&
+    target !== barcodeInput
   ) {
     return;
   }
