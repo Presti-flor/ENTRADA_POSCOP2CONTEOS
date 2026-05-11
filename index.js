@@ -12,7 +12,9 @@ app.use(express.static(path.join(__dirname, "public")));
 
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
-  ssl: process.env.DATABASE_URL ? { rejectUnauthorized: false } : false,
+  ssl: process.env.DATABASE_URL
+    ? { rejectUnauthorized: false }
+    : false,
 });
 
 (async () => {
@@ -35,12 +37,15 @@ function getViajesFijos() {
 }
 
 function asegurarViaje(nombre) {
+
   if (!sesionesViaje[nombre]) {
+
     sesionesViaje[nombre] = {
       activa: true,
       historial: []
     };
   }
+
   return sesionesViaje[nombre];
 }
 
@@ -48,6 +53,7 @@ function asegurarViaje(nombre) {
 // HELPERS
 // =====================================================
 function parseCode(codeRaw) {
+
   const code = String(codeRaw || "").trim();
 
   if (!/^\d{3,}$/.test(code)) {
@@ -57,16 +63,25 @@ function parseCode(codeRaw) {
   const tipo = code.slice(0, 2);
   const serial = code.slice(2);
 
-  return { barcode: code, tipo, serial };
+  return {
+    barcode: code,
+    tipo,
+    serial
+  };
 }
 
+// =====================================================
+// VIAJE ACTIVO
+// =====================================================
 app.get("/api/viaje-activo", async (req, res) => {
+
   try {
 
     const viajeActivo = Object.keys(sesionesViaje)
       .find(nombre => sesionesViaje[nombre]?.activa === true);
 
     if (!viajeActivo) {
+
       return res.json({
         ok: false,
         error: "No hay viaje activo"
@@ -88,25 +103,45 @@ app.get("/api/viaje-activo", async (req, res) => {
     });
   }
 });
+
 // =====================================================
-// API VIAJES
+// LISTAR VIAJES
 // =====================================================
 app.get("/api/viajes", async (_req, res) => {
+
   res.json({
     ok: true,
     data: getViajesFijos()
   });
 });
 
+// =====================================================
+// ACTIVAR VIAJE
+// =====================================================
 app.post("/api/viajes/activar", async (req, res) => {
+
   try {
+
     const nombre = String(req.body.nombre || "").trim();
 
     if (!nombre) {
-      return res.status(400).json({ ok: false, error: "Falta nombre del viaje" });
+
+      return res.status(400).json({
+        ok: false,
+        error: "Falta nombre del viaje"
+      });
     }
 
+    // DESACTIVAR TODOS
+    Object.keys(sesionesViaje).forEach((v) => {
+
+      sesionesViaje[v].activa = false;
+
+    });
+
+    // ACTIVAR SOLO ESTE
     const viaje = asegurarViaje(nombre);
+
     viaje.activa = true;
 
     res.json({
@@ -116,17 +151,31 @@ app.post("/api/viajes/activar", async (req, res) => {
         activa: true
       }
     });
+
   } catch (err) {
-    res.status(500).json({ ok: false, error: err.message });
+
+    res.status(500).json({
+      ok: false,
+      error: err.message
+    });
   }
 });
 
+// =====================================================
+// FINALIZAR VIAJE
+// =====================================================
 app.post("/api/viajes/finalizar", async (req, res) => {
+
   try {
+
     const nombre = String(req.body.nombre || "").trim();
 
     if (!nombre || !sesionesViaje[nombre]) {
-      return res.status(404).json({ ok: false, error: "Viaje no encontrado" });
+
+      return res.status(404).json({
+        ok: false,
+        error: "Viaje no encontrado"
+      });
     }
 
     sesionesViaje[nombre].activa = false;
@@ -138,8 +187,13 @@ app.post("/api/viajes/finalizar", async (req, res) => {
         activa: false
       }
     });
+
   } catch (err) {
-    res.status(500).json({ ok: false, error: err.message });
+
+    res.status(500).json({
+      ok: false,
+      error: err.message
+    });
   }
 });
 
@@ -147,32 +201,55 @@ app.post("/api/viajes/finalizar", async (req, res) => {
 // ESCANEO
 // =====================================================
 app.post("/api/escanear", async (req, res) => {
+
   try {
+
     const viajeNombre = String(req.body.viaje || "").trim();
     const codeInput = String(req.body.barcode || "").trim();
 
     if (!viajeNombre) {
-      return res.status(400).json({ ok: false, error: "Debes seleccionar un viaje" });
+
+      return res.status(400).json({
+        ok: false,
+        error: "Debes seleccionar un viaje"
+      });
     }
 
     const viaje = asegurarViaje(viajeNombre);
 
     if (!viaje.activa) {
-      return res.status(400).json({ ok: false, error: "El viaje está finalizado" });
+
+      return res.status(400).json({
+        ok: false,
+        error: "El viaje está finalizado"
+      });
     }
 
     const { barcode, tipo, serial } = parseCode(codeInput);
 
-    // 1. Buscar metadata en tipos_variedad
+    // =====================================================
+    // BUSCAR EN tipos_variedad
+    // =====================================================
     const tipoRow = await pool.query(
-      `SELECT tipo, variedad, bloque, tamano, tallos
-       FROM tipos_variedad
-       WHERE tipo = $1
-       LIMIT 1`,
+      `
+      SELECT
+        tipo,
+        variedad,
+        bloque,
+        tamano,
+        tallos
+      FROM tipos_variedad
+      WHERE tipo = $1
+      LIMIT 1
+      `,
       [tipo]
     );
 
+    // =====================================================
+    // NO EXISTE
+    // =====================================================
     if (tipoRow.rowCount === 0) {
+
       const evento = {
         fecha: new Date().toISOString(),
         barcode,
@@ -200,13 +277,38 @@ app.post("/api/escanear", async (req, res) => {
 
     const t = tipoRow.rows[0];
 
-    // 2. Insertar en registros
+    // =====================================================
+    // INSERTAR EN BD
+    // =====================================================
     const insert = await pool.query(
-      `INSERT INTO registros
-       (barcode, tipo, serial, variedad, bloque, tamano, tallos, etapa)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8)
-       ON CONFLICT (barcode) DO NOTHING
-       RETURNING barcode`,
+      `
+      INSERT INTO registros
+      (
+        barcode,
+        tipo,
+        serial,
+        variedad,
+        bloque,
+        tamano,
+        tallos,
+        etapa,
+        viaje
+      )
+      VALUES
+      (
+        $1,
+        $2,
+        $3,
+        $4,
+        $5,
+        $6,
+        $7,
+        $8,
+        $9
+      )
+      ON CONFLICT (barcode) DO NOTHING
+      RETURNING barcode
+      `,
       [
         barcode,
         tipo,
@@ -215,14 +317,19 @@ app.post("/api/escanear", async (req, res) => {
         t.bloque,
         t.tamano,
         t.tallos,
-        "Ingreso"
+        "Ingreso",
+        viajeNombre
       ]
     );
 
     let resultado = "OK";
     let observacion = "Escaneo registrado correctamente";
 
+    // =====================================================
+    // DUPLICADO
+    // =====================================================
     if (insert.rowCount === 0) {
+
       resultado = "YA_REGISTRADO";
       observacion = "El barcode ya existe en registros";
     }
@@ -252,135 +359,199 @@ app.post("/api/escanear", async (req, res) => {
     });
 
   } catch (err) {
+
     console.error("❌ /api/escanear:", err.message);
-    return res.status(500).json({ ok: false, error: err.message });
+
+    return res.status(500).json({
+      ok: false,
+      error: err.message
+    });
   }
 });
 
 // =====================================================
-// RESUMEN DEL VIAJE
+// RESUMEN
 // =====================================================
 app.get("/api/viajes/:nombre/resumen", async (req, res) => {
+
   try {
+
     const nombre = decodeURIComponent(req.params.nombre);
-    const viaje = sesionesViaje[nombre];
 
-    if (!viaje) {
-      return res.json({
-        ok: true,
-        viaje: { nombre, activa: false },
-        resumen: { ok: 0, duplicados: 0, errores: 0, total: 0 }
-      });
-    }
+    const q = `
+      SELECT
+        COUNT(*) FILTER (WHERE barcode IS NOT NULL) AS total,
+        COUNT(*) AS ok,
+        0 AS duplicados,
+        0 AS errores
+      FROM registros
+      WHERE viaje = $1
+    `;
 
-    const historial = viaje.historial;
-
-    const resumen = {
-      total: historial.length,
-      ok: historial.filter(x => x.resultado === "OK").length,
-      duplicados: historial.filter(x => x.resultado === "YA_REGISTRADO").length,
-      errores: historial.filter(x => x.resultado === "NO_EXISTE").length
-    };
+    const r = await pool.query(q, [nombre]);
 
     res.json({
       ok: true,
-      viaje: { nombre, activa: viaje.activa },
-      resumen
+      viaje: {
+        nombre,
+        activa: true
+      },
+      resumen: r.rows[0]
     });
 
   } catch (err) {
-    res.status(500).json({ ok: false, error: err.message });
+
+    console.error(err);
+
+    res.status(500).json({
+      ok: false,
+      error: err.message
+    });
   }
 });
 
 // =====================================================
-// TABLA DINÁMICA DEL VIAJE
+// PIVOT DESDE BD
 // =====================================================
 app.get("/api/viajes/:nombre/pivot", async (req, res) => {
+
   try {
+
     const nombre = decodeURIComponent(req.params.nombre);
-    const viaje = sesionesViaje[nombre];
 
-    if (!viaje) {
-      return res.json({ ok: true, data: [] });
-    }
+    const q = `
+      SELECT
+        bloque,
+        variedad,
+        tamano,
+        tallos,
+        etapa,
+        COUNT(*) AS tabacos,
+        SUM(tallos) AS suma_tallos
+      FROM registros
+      WHERE viaje = $1
+      GROUP BY
+        bloque,
+        variedad,
+        tamano,
+        tallos,
+        etapa
+      ORDER BY
+        bloque ASC,
+        variedad ASC
+    `;
 
-    const agrupado = {};
-
-    for (const row of viaje.historial) {
-      if (row.resultado !== "OK") continue;
-
-      const key = [
-        row.bloque ?? "",
-        row.variedad ?? "",
-        row.tamano ?? "",
-        row.tallos ?? "",
-        row.etapa ?? ""
-      ].join("|");
-
-      if (!agrupado[key]) {
-        agrupado[key] = {
-          bloque: row.bloque ?? "",
-          variedad: row.variedad ?? "",
-          tamano: row.tamano ?? "",
-          tallos: row.tallos ?? "",
-          etapa: row.etapa ?? "",
-          tabacos: 0,
-          suma_tallos: 0
-        };
-      }
-
-      agrupado[key].tabacos += 1;
-      agrupado[key].suma_tallos += Number(row.tallos || 0);
-    }
-
-    const data = Object.values(agrupado).sort((a, b) => {
-      if (String(a.bloque) < String(b.bloque)) return -1;
-      if (String(a.bloque) > String(b.bloque)) return 1;
-      return String(a.variedad).localeCompare(String(b.variedad));
-    });
-
-    res.json({ ok: true, data });
-
-  } catch (err) {
-    res.status(500).json({ ok: false, error: err.message });
-  }
-});
-
-// =====================================================
-// DETALLE DEL VIAJE
-// =====================================================
-app.get("/api/viajes/:nombre/detalle", async (req, res) => {
-  try {
-    const nombre = decodeURIComponent(req.params.nombre);
-    const viaje = sesionesViaje[nombre];
-
-    if (!viaje) {
-      return res.json({ ok: true, data: [] });
-    }
+    const r = await pool.query(q, [nombre]);
 
     res.json({
       ok: true,
-      data: viaje.historial
+      data: r.rows
     });
 
   } catch (err) {
-    res.status(500).json({ ok: false, error: err.message });
+
+    console.error(err);
+
+    res.status(500).json({
+      ok: false,
+      error: err.message
+    });
   }
 });
 
 // =====================================================
-// CONSULTA EN BD POR BARCODE
+// DETALLE DESDE BD
+// =====================================================
+app.get("/api/viajes/:nombre/detalle", async (req, res) => {
+
+  try {
+
+    const nombre = decodeURIComponent(req.params.nombre);
+
+    const q = `
+      SELECT
+        barcode,
+        tipo,
+        serial,
+        variedad,
+        bloque,
+        tamano,
+        tallos,
+        etapa,
+        form_id,
+        form,
+        barcode_origen,
+        es_reregistro,
+        created_at
+      FROM registros
+      WHERE viaje = $1
+      ORDER BY created_at DESC
+      LIMIT 500
+    `;
+
+    const r = await pool.query(q, [nombre]);
+
+    const data = r.rows.map((x) => ({
+      fecha: x.created_at,
+      barcode: x.barcode,
+      tipo: x.tipo,
+      serial: x.serial,
+      bloque: x.bloque,
+      variedad: x.variedad,
+      tamano: x.tamano,
+      tallos: x.tallos,
+      etapa: x.etapa,
+      form_id: x.form_id,
+      form: x.form,
+      barcode_origen: x.barcode_origen,
+      es_reregistro: x.es_reregistro,
+      resultado: "OK",
+      observacion: ""
+    }));
+
+    res.json({
+      ok: true,
+      data
+    });
+
+  } catch (err) {
+
+    console.error(err);
+
+    res.status(500).json({
+      ok: false,
+      error: err.message
+    });
+  }
+});
+
+// =====================================================
+// CONSULTA REGISTRO
 // =====================================================
 app.get("/api/registro/:barcode", async (req, res) => {
+
   try {
+
     const barcode = String(req.params.barcode || "").trim();
 
     const r = await pool.query(
-      `SELECT barcode, tipo, serial, variedad, bloque, tamano, tallos, created_at, etapa, form_id
-       FROM registros
-       WHERE barcode = $1
-       LIMIT 1`,
+      `
+      SELECT
+        barcode,
+        tipo,
+        serial,
+        variedad,
+        bloque,
+        tamano,
+        tallos,
+        created_at,
+        etapa,
+        form_id,
+        viaje
+      FROM registros
+      WHERE barcode = $1
+      LIMIT 1
+      `,
       [barcode]
     );
 
@@ -388,11 +559,21 @@ app.get("/api/registro/:barcode", async (req, res) => {
       ok: true,
       data: r.rows[0] || null
     });
+
   } catch (err) {
-    res.status(500).json({ ok: false, error: err.message });
+
+    res.status(500).json({
+      ok: false,
+      error: err.message
+    });
   }
 });
 
+// =====================================================
+// START
+// =====================================================
 app.listen(port, () => {
+
   console.log(`✅ Servidor activo en http://localhost:${port}`);
+
 });
