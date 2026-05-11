@@ -422,7 +422,7 @@ app.get("/api/viajes/:nombre/pivot", async (req, res) => {
 
     const nombre = decodeURIComponent(req.params.nombre);
 
-    const q = `
+    const r = await pool.query(`
       SELECT
         bloque,
         variedad,
@@ -431,22 +431,24 @@ app.get("/api/viajes/:nombre/pivot", async (req, res) => {
         etapa,
         COUNT(*) AS tabacos,
         SUM(tallos) AS suma_tallos
+
       FROM registros
+
       WHERE viaje = $1
+
       GROUP BY
         bloque,
         variedad,
         tamano,
         tallos,
         etapa
+
       ORDER BY
-        bloque ASC,
-        variedad ASC
-    `;
+        bloque,
+        variedad
+    `, [nombre]);
 
-    const r = await pool.query(q, [nombre]);
-
-    res.json({
+    return res.json({
       ok: true,
       data: r.rows
     });
@@ -455,11 +457,13 @@ app.get("/api/viajes/:nombre/pivot", async (req, res) => {
 
     console.error(err);
 
-    res.status(500).json({
+    return res.status(500).json({
       ok: false,
       error: err.message
     });
+
   }
+
 });
 
 // =====================================================
@@ -471,24 +475,35 @@ app.get("/api/viajes/:nombre/resumen", async (req, res) => {
 
     const nombre = decodeURIComponent(req.params.nombre);
 
-    const q = `
-      SELECT COUNT(*) AS total
+    const r = await pool.query(`
+      SELECT
+        COUNT(*) AS total,
+
+        COUNT(*) FILTER (
+          WHERE es_reregistro IS NOT TRUE
+        ) AS ok,
+
+        COUNT(*) FILTER (
+          WHERE es_reregistro = true
+        ) AS duplicados
+
       FROM registros
       WHERE viaje = $1
-    `;
+    `, [nombre]);
 
-    const r = await pool.query(q, [nombre]);
+    const row = r.rows[0];
 
-    const total = Number(r.rows[0]?.total || 0);
-
-    res.json({
+    return res.json({
       ok: true,
-
-      sesionActual: {
-        ok: total,
-        duplicados: 0,
-        errores: 0,
-        reregistrados: 0
+      viaje: {
+        nombre,
+        activa: true
+      },
+      resumen: {
+        total: Number(row.total || 0),
+        ok: Number(row.ok || 0),
+        duplicados: Number(row.duplicados || 0),
+        errores: 0
       }
     });
 
@@ -496,11 +511,13 @@ app.get("/api/viajes/:nombre/resumen", async (req, res) => {
 
     console.error(err);
 
-    res.status(500).json({
+    return res.status(500).json({
       ok: false,
       error: err.message
     });
+
   }
+
 });
 app.get("/api/viajes/:nombre/resumen-db", async (req, res) => {
 
