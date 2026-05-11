@@ -108,51 +108,22 @@ function setAcumuladoSeguro(valor) {
 }
 
 function focusBarcodeSeguro() {
-
   if (!barcodeInput) return;
 
   const activo = document.activeElement;
   const tag = activo?.tagName?.toLowerCase();
 
-  // NO ROBAR FOCO
-  if (
-    tag === "select" ||
-    tag === "textarea"
-  ) {
-    return;
-  }
+  if (tag === "select" || tag === "textarea") return;
 
-  // INPUTS NORMALES
-  if (
-    tag === "input" &&
-    activo !== barcodeInput
-  ) {
-    return;
-  }
-
-  const x = window.scrollX;
-  const y = window.scrollY;
+  if (tag === "input" && activo !== barcodeInput) return;
 
   try {
-
     barcodeInput.focus({
       preventScroll: true
     });
-
   } catch (e) {
-
     barcodeInput.focus();
   }
-
-  window.scrollTo(x, y);
-
-  requestAnimationFrame(() => {
-    window.scrollTo(x, y);
-  });
-
-  setTimeout(() => {
-    window.scrollTo(x, y);
-  }, 50);
 }
 
 function focusBarcodeSinScroll() {
@@ -1174,59 +1145,122 @@ async function agregarRegistroManualDesdeResumen(data) {
   }
 }
 // =====================================================
+// LECTOR GLOBAL DE CÓDIGOS
+// Funciona desde cualquier parte de la página.
+// Escribe o escanea números y registra al presionar ENTER.
+// Acepta códigos desde 2 dígitos hasta más de 17.
 // =====================================================
-// LECTOR ESCÁNER POR ENTER
-// Acepta códigos desde 2 dígitos hasta más de 17
-// Requiere que la pistola envíe ENTER al final
-// =====================================================
-if (barcodeInput) {
 
-  barcodeInput.addEventListener("keydown", async (e) => {
+let lectorBuffer = "";
+let lectorProcesando = false;
 
-    if (e.key !== "Enter") return;
+function limpiarLectorGlobal() {
+  lectorBuffer = "";
+
+  if (barcodeInput) {
+    barcodeInput.value = "";
+  }
+
+  if (barcodeVisible) {
+    barcodeVisible.textContent = "Esperando escaneo...";
+  }
+}
+
+function mostrarLectorGlobal() {
+  if (barcodeVisible) {
+    barcodeVisible.textContent = lectorBuffer || "Esperando escaneo...";
+  }
+}
+
+function usuarioEstaEditandoCampo() {
+  const activo = document.activeElement;
+
+  if (!activo) return false;
+
+  const tag = activo.tagName?.toLowerCase();
+
+  if (tag === "select") return true;
+  if (tag === "textarea") return true;
+
+  if (tag === "input" && activo !== barcodeInput) {
+    return true;
+  }
+
+  return false;
+}
+
+document.addEventListener("keydown", async (e) => {
+  if (e.ctrlKey || e.altKey || e.metaKey) return;
+
+  if (usuarioEstaEditandoCampo()) return;
+
+  if (lectorProcesando) {
+    e.preventDefault();
+    return;
+  }
+
+  if (/^\d$/.test(e.key)) {
+    e.preventDefault();
+
+    lectorBuffer += e.key;
+    mostrarLectorGlobal();
+
+    return;
+  }
+
+  if (e.key === "Backspace") {
+    if (!lectorBuffer) return;
 
     e.preventDefault();
 
-    if (escaneando) return;
+    lectorBuffer = lectorBuffer.slice(0, -1);
+    mostrarLectorGlobal();
 
-    const codigo = String(barcodeInput.value || "")
+    return;
+  }
+
+  if (e.key === "Escape") {
+    e.preventDefault();
+
+    limpiarLectorGlobal();
+    setStatus("Código limpiado", "neutral");
+
+    return;
+  }
+
+  if (e.key === "Enter") {
+    if (!lectorBuffer.trim()) return;
+
+    e.preventDefault();
+
+    const codigo = lectorBuffer
       .replace(/[^\d]/g, "")
       .trim();
 
-    barcodeInput.value = "";
-
-    if (barcodeVisible) {
-      barcodeVisible.textContent = "Esperando escaneo...";
-    }
+    limpiarLectorGlobal();
 
     if (!codigo) return;
 
     if (codigo.length < 2) {
       setStatus(`Código demasiado corto: ${codigo}`, "warn");
-      focusBarcodeSeguro();
       return;
     }
 
+    lectorProcesando = true;
     escaneando = true;
 
     try {
       await escanearCodigo(codigo);
     } finally {
+      lectorProcesando = false;
       escaneando = false;
 
       setTimeout(() => {
         focusBarcodeSeguro();
       }, 100);
     }
-  });
-
-  barcodeInput.addEventListener("input", () => {
-    if (barcodeVisible) {
-      barcodeVisible.textContent =
-        barcodeInput.value || "Esperando escaneo...";
-    }
-  });
-}
+  }
+});
 
 async function refrescarDetalle() {
   if (!detalleBody) return;
@@ -1371,19 +1405,7 @@ function verDetalleFila(btn) {
 
 
 
-function limpiarScannerBuffer() {
 
-  scannerBuffer = "";
-
-  if (barcodeVisible) {
-    barcodeVisible.textContent = "Esperando escaneo...";
-  }
-
-  if (scannerTimer) {
-    clearTimeout(scannerTimer);
-    scannerTimer = null;
-  }
-}
 function abrirModalYaRegistrados() {
   if (!modalYaRegistrados || !modalYaRegistradosBody) return;
 
@@ -1519,26 +1541,6 @@ function puedeRecuperarFoco() {
   return true;
 }
 
-function activarEscuchaScannerAutomatica() {
-
-  // FOCO INICIAL
-  setTimeout(() => {
-    focusBarcodeSeguro();
-  }, 400);
-
-  // RECUPERAR FOCO SI SE PIERDE
-  setInterval(() => {
-
-    if (escaneando) return;
-
-    if (!puedeRecuperarFoco()) return;
-
-    if (document.activeElement !== barcodeInput) {
-      focusBarcodeSeguro();
-    }
-
-  }, 1200);
-}
 
 // CLICK GENERAL
 document.addEventListener("click", (e) => {
@@ -1596,11 +1598,12 @@ window.addEventListener("load", async () => {
 
   setTimeout(() => {
     focusBarcodeSeguro();
-  }, 1500);
+  }, 300);
 
   setInterval(() => {
 
     if (escaneando) return;
+    if (!puedeRecuperarFoco()) return;
 
     if (document.activeElement !== barcodeInput) {
       focusBarcodeSeguro();
