@@ -232,155 +232,168 @@ app.get("/api/viaje-activo-global", (_req, res) => {
 // ESCANEO NORMAL
 // =====================================================
 
+// =====================================================
+// ESCANEO PRINCIPAL
+// =====================================================
 app.post("/api/escanear", async (req, res) => {
   try {
-    const viajeNombre = String(req.body.viaje || viajeActivoGlobal || "").trim();
-    const codeInput = String(req.body.barcode || "").trim();
-    const form = String(req.body.form || "").trim();
+    const viajeNombre = String(req.body.viaje || "").trim();
+
+    const codeInput = String(req.body.barcode || "")
+      .replace(/[^\d]/g, "")
+      .trim();
 
     if (!viajeNombre) {
-      return res.status(400).json({ ok: false, error: "No hay viaje activo" });
-    }
-
-    const viaje = asegurarViaje(viajeNombre);
-
-    if (!viaje.activa) {
-      return res.status(400).json({ ok: false, error: "El viaje está finalizado" });
-    }
-
-    let barcode, tipo, serial;
-
-    try {
-      ({ barcode, tipo, serial } = parseCode(codeInput));
-    } catch (e) {
       return res.status(400).json({
         ok: false,
-        error: e.message,
+        resultado: "SIN_VIAJE",
+        error: "Debes seleccionar un viaje"
       });
     }
 
+    if (!codeInput) {
+      return res.status(400).json({
+        ok: false,
+        resultado: "CODIGO_VACIO",
+        error: "Código vacío o inválido"
+      });
+    }
+
+    if (codeInput.length < 3) {
+      return res.status(400).json({
+        ok: false,
+        resultado: "CODIGO_CORTO",
+        error: `Código demasiado corto: ${codeInput}`
+      });
+    }
+
+    asegurarViaje(viajeNombre);
+
+    await pool.query(`
+      INSERT INTO sistema_estado (clave, valor, updated_at)
+      VALUES ('viaje_activo', $1, NOW())
+      ON CONFLICT (clave)
+      DO UPDATE SET
+        valor = EXCLUDED.valor,
+        updated_at = NOW()
+    `, [viajeNombre]);
+
+    const barcode = codeInput;
+    const tipo = codeInput.slice(0, 2);
+    const serial = codeInput.slice(2);
+
     const tipoRow = await pool.query(
-      `SELECT tipo, variedad, bloque, tamano, tallos
-       FROM public.tipos_variedad
-       WHERE TRIM(tipo) = TRIM($1)
-       LIMIT 1`,
+      `
+      SELECT
+        tipo,
+        variedad,
+        bloque,
+        tamano,
+        tallos
+      FROM tipos_variedad
+      WHERE tipo = $1
+      LIMIT 1
+      `,
       [tipo]
     );
 
-    if (tipoRow.rowCount === 0) {
-      const evento = {
-        id_local: secuenciaLocal++,
-        fecha: new Date().toISOString(),
-        barcode,
-        tipo,
-        serial,
-        bloque: null,
-        variedad: null,
-        tamano: null,
-        tallos: null,
-        etapa: "Ingreso",
-        form,
-        resultado: "NO_EXISTE",
-        observacion: "Tipo no existe",
-        puede_reregistrar: false,
-      };
-
-      viaje.historial.unshift(evento);
-      viaje.historialSesion.unshift(evento);
-      sumarAcumulado(viaje, evento.resultado);
-
+    if (!tipoRow.rowCount) {
       return res.json({
         ok: true,
         resultado: "NO_EXISTE",
-        data: evento,
+        mensaje: `El tipo ${tipo} no existe en tipos_variedad`,
+        data: {
+          barcode,
+          tipo,
+          serial,
+          bloque: null,
+          variedad: null,
+          tamano: null,
+          tallos: null,
+          resultado: "NO_EXISTE",
+          observacion: `Tipo ${tipo} no existe en tipos_variedad`
+        }
       });
     }
 
     const t = tipoRow.rows[0];
 
-    const existe = await pool.query(
-      `SELECT barcode, created_at
-       FROM public.registros
-       WHERE barcode = $1
-       LIMIT 1`,
-      [barcode]
+    const insert = await pool.query(
+      `
+      INSERT INTO registros (
+        barcode,
+        tipo,
+        serial,
+        variedad,
+        bloque,
+        tamano,
+        tallos,
+        etapa,
+        viaje
+      )
+      VALUES (
+        $1,$2,$3,$4,$5,$6,$7,$8,$9
+      )
+      ON CONFLICT (barcode)
+      DO NOTHING
+      RETURNING barcode
+      `,
+      [
+        barcode,
+        tipo,
+        serial,
+        t.variedad,
+        t.bloque,
+        t.tamano,
+        t.tallos,
+        "Ingreso",
+        viajeNombre
+      ]
     );
 
-    let resultado = "OK";
-    let puede_reregistrar = false;
-    let fechaAnterior = null;
-
-    if (existe.rowCount > 0) {
-      resultado = "YA_REGISTRADO";
-      fechaAnterior = existe.rows[0].created_at;
-      puede_reregistrar = true;
-
-      const yaTieneReregistro = await pool.query(
-        `SELECT 1
-         FROM public.registros
-         WHERE barcode_origen = $1
-         LIMIT 1`,
-        [barcode]
-      );
-
-      if (yaTieneReregistro.rowCount > 0) {
-        puede_reregistrar = false;
-      }
-    } else {
-      await pool.query(
-        `INSERT INTO public.registros
-        (barcode, tipo, serial, variedad, bloque, tamano, tallos, etapa, viaje, barcode_origen, es_reregistro, form)
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)`,
-        [
+    if (!insert.rowCount) {
+      return res.json({
+        ok: true,
+        resultado: "YA_REGISTRADO",
+        mensaje: "El barcode ya existe en registros",
+        data: {
           barcode,
           tipo,
           serial,
-          t.variedad,
-          t.bloque,
-          t.tamano,
-          t.tallos,
-          "Ingreso",
-          viajeNombre,
-          null,
-          false,
-          form || null,
-        ]
-      );
+          variedad: t.variedad,
+          bloque: t.bloque,
+          tamano: t.tamano,
+          tallos: t.tallos,
+          resultado: "YA_REGISTRADO",
+          observacion: "El barcode ya existe en registros"
+        }
+      });
     }
-
-    const evento = {
-      id_local: secuenciaLocal++,
-      fecha: new Date().toISOString(),
-      barcode,
-      tipo,
-      serial,
-      bloque: t.bloque,
-      variedad: t.variedad,
-      tamano: t.tamano,
-      tallos: t.tallos,
-      etapa: "Ingreso",
-      form,
-      resultado,
-      fechaAnterior,
-      puede_reregistrar,
-    };
-
-    viaje.historial.unshift(evento);
-    viaje.historialSesion.unshift(evento);
-    sumarAcumulado(viaje, evento.resultado);
 
     return res.json({
       ok: true,
-      resultado,
-      data: evento,
+      resultado: "OK",
+      mensaje: "Escaneo registrado correctamente",
+      data: {
+        barcode,
+        tipo,
+        serial,
+        variedad: t.variedad,
+        bloque: t.bloque,
+        tamano: t.tamano,
+        tallos: t.tallos,
+        resultado: "OK",
+        observacion: "Escaneo registrado correctamente"
+      }
     });
+
   } catch (err) {
-    console.error("❌ ERROR REAL EN /api/escanear:", err);
+    console.error("❌ /api/escanear:", err);
+
     return res.status(500).json({
       ok: false,
-      error: err.message,
-      detail: err.detail || null,
-      code: err.code || null,
+      resultado: "ERROR_SERVIDOR",
+      error: err.message
     });
   }
 });

@@ -733,11 +733,18 @@ async function escanearCodigo(barcode) {
 
     const data = await res.json();
 
-    if (!res.ok || !data.ok) {
-      setStatus(data.error || "Error al escanear", "error");
-      console.error("Error backend /api/escanear:", data);
-      return;
-    }
+    if (!res.ok || data.ok === false) {
+  const mensaje = data.error || data.mensaje || data.resultado || "Error al escanear";
+
+  setStatus(`${barcodeLimpio} → ${mensaje}`, "error");
+
+  console.error(
+    "Error backend /api/escanear:",
+    JSON.stringify(data, null, 2)
+  );
+
+  return;
+}
 
     if (data.resultado === "OK") {
       setStatus(`${barcodeLimpio} → REGISTRADO`, "ok");
