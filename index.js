@@ -53,6 +53,9 @@ function asegurarViaje(nombre) {
 // HELPERS
 // =====================================================
 function parseCode(codeRaw) {
+  app.get("/api/test", (req, res) => {
+  res.send("API OK");
+});
 
   const code = String(codeRaw || "").trim();
 
