@@ -462,56 +462,63 @@ app.get("/api/viajes/:nombre/pivot", async (req, res) => {
 // =====================================================
 // DETALLE DESDE BD
 // =====================================================
-app.get("/api/viajes/:nombre/detalle", async (req, res) => {
+app.get("/api/viajes/:nombre/resumen", async (req, res) => {
 
   try {
 
     const nombre = decodeURIComponent(req.params.nombre);
 
     const q = `
-      SELECT
-        barcode,
-        tipo,
-        serial,
-        variedad,
-        bloque,
-        tamano,
-        tallos,
-        etapa,
-        form_id,
-        form,
-        barcode_origen,
-        es_reregistro,
-        created_at
+      SELECT COUNT(*) AS total
       FROM registros
       WHERE viaje = $1
-      ORDER BY created_at DESC
-      LIMIT 500
     `;
 
     const r = await pool.query(q, [nombre]);
 
-    const data = r.rows.map((x) => ({
-      fecha: x.created_at,
-      barcode: x.barcode,
-      tipo: x.tipo,
-      serial: x.serial,
-      bloque: x.bloque,
-      variedad: x.variedad,
-      tamano: x.tamano,
-      tallos: x.tallos,
-      etapa: x.etapa,
-      form_id: x.form_id,
-      form: x.form,
-      barcode_origen: x.barcode_origen,
-      es_reregistro: x.es_reregistro,
-      resultado: "OK",
-      observacion: ""
-    }));
+    const total = Number(r.rows[0]?.total || 0);
 
     res.json({
       ok: true,
-      data
+
+      sesionActual: {
+        ok: total,
+        duplicados: 0,
+        errores: 0,
+        reregistrados: 0
+      }
+    });
+
+  } catch (err) {
+
+    console.error(err);
+
+    res.status(500).json({
+      ok: false,
+      error: err.message
+    });
+  }
+});
+app.get("/api/viajes/:nombre/resumen-db", async (req, res) => {
+
+  try {
+
+    const nombre = decodeURIComponent(req.params.nombre);
+
+    const q = `
+      SELECT COUNT(*) AS ok
+      FROM registros
+      WHERE viaje = $1
+    `;
+
+    const r = await pool.query(q, [nombre]);
+
+    res.json({
+      ok: true,
+      data: {
+        ok: Number(r.rows[0]?.ok || 0),
+        reregistrados: 0
+      }
     });
 
   } catch (err) {
