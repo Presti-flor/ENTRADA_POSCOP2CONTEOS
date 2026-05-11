@@ -584,117 +584,24 @@ app.post("/guardar", async (req, res) => {
 // CONTADOR GENERAL
 // =====================================================
 
-// =====================================================
-// CONTADOR GENERAL
-// =====================================================
-// =====================================================
-// CONTADOR GENERAL
-// =====================================================
-app.get("/api/contador-general", async (_req, res) => {
-  try {
-    const r = await pool.query(`
-      SELECT
-        COUNT(*) AS total,
-        COALESCE(
-          SUM(
-            CASE
-              WHEN tallos IS NULL THEN 0
-              WHEN tallos::text ~ '^[0-9]+$' THEN tallos::int
-              ELSE 0
-            END
-          ),
-          0
-        ) AS total_tallos
-      FROM registros
-    `);
-
-    return res.json({
-      ok: true,
-      total: Number(r.rows[0]?.total || 0),
-      total_tallos: Number(r.rows[0]?.total_tallos || 0)
-    });
-
-  } catch (err) {
-    console.error("❌ /api/contador-general:", err);
-
-    return res.status(500).json({
-      ok: false,
-      error: err.message
-    });
-  }
-});
-
-// =====================================================
-// CONTADOR GENERAL - COMPATIBILIDAD FRONTEND
-// =====================================================
 app.get("/api/general/contador", async (_req, res) => {
   try {
     const r = await pool.query(`
       SELECT
-        COUNT(*) AS total,
-        COALESCE(
-          SUM(
-            CASE
-              WHEN tallos IS NULL THEN 0
-              WHEN tallos::text ~ '^[0-9]+$' THEN tallos::int
-              ELSE 0
-            END
-          ),
-          0
-        ) AS total_tallos
-      FROM registros
+        COUNT(*)::int AS total,
+        COALESCE(SUM(tallos), 0)::int AS total_tallos
+      FROM public.registros
+      WHERE (created_at AT TIME ZONE 'America/Bogota')::date =
+            (NOW() AT TIME ZONE 'America/Bogota')::date
     `);
 
-    return res.json({
+    res.json({
       ok: true,
-      total: Number(r.rows[0]?.total || 0),
-      total_tallos: Number(r.rows[0]?.total_tallos || 0)
+      total: r.rows[0]?.total ?? 0,
+      total_tallos: r.rows[0]?.total_tallos ?? 0,
     });
-
   } catch (err) {
-    console.error("❌ /api/general/contador:", err);
-
-    return res.status(500).json({
-      ok: false,
-      error: err.message
-    });
-  }
-});
-
-// =====================================================
-// CONTADOR GENERAL - COMPATIBILIDAD FRONTEND
-// =====================================================
-app.get("/api/general/contador", async (_req, res) => {
-  try {
-    const r = await pool.query(`
-      SELECT
-        COUNT(*) AS total,
-        COALESCE(
-          SUM(
-            CASE
-              WHEN tallos IS NULL THEN 0
-              WHEN tallos::text ~ '^[0-9]+$' THEN tallos::int
-              ELSE 0
-            END
-          ),
-          0
-        ) AS total_tallos
-      FROM registros
-    `);
-
-    return res.json({
-      ok: true,
-      total: Number(r.rows[0]?.total || 0),
-      total_tallos: Number(r.rows[0]?.total_tallos || 0)
-    });
-
-  } catch (err) {
-    console.error("❌ /api/general/contador:", err);
-
-    return res.status(500).json({
-      ok: false,
-      error: err.message
-    });
+    res.status(500).json({ ok: false, error: err.message });
   }
 });
 
