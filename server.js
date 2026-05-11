@@ -729,47 +729,45 @@ app.get("/api/general/bloque/:bloque/variedades", async (req, res) => {
 // =====================================================
 
 app.get("/api/viajes/:nombre/resumen", async (req, res) => {
+
   try {
+
     const nombre = decodeURIComponent(req.params.nombre);
-    const viaje = sesionesViaje[nombre];
 
-    if (!viaje) {
-      return res.json({
-        ok: true,
-        viaje: { nombre, activa: false },
-        sesionActual: { ok: 0, duplicados: 0, errores: 0, reregistrados: 0, total: 0 },
-        acumulado: { ok: 0, duplicados: 0, errores: 0, reregistrados: 0, total: 0 },
-      });
-    }
+    const r = await pool.query(`
+      SELECT
+        COUNT(*) AS total
+      FROM registros
+      WHERE viaje = $1
+    `, [nombre]);
 
-    const sesion = viaje.historialSesion || [];
-    const historialTotal = viaje.historial || [];
+    const total = Number(r.rows[0].total || 0);
 
-    const sesionActual = {
-      total: sesion.length,
-      ok: sesion.filter((x) => x.resultado === "OK").length,
-      duplicados: sesion.filter((x) => x.resultado === "YA_REGISTRADO").length,
-      errores: sesion.filter((x) => x.resultado === "NO_EXISTE").length,
-      reregistrados: sesion.filter((x) => x.resultado === "REREGISTRADO").length,
-    };
-
-    const acumulado = {
-      total: historialTotal.length,
-      ok: viaje.acumulado.ok,
-      duplicados: viaje.acumulado.duplicados,
-      errores: viaje.acumulado.errores,
-      reregistrados: viaje.acumulado.reregistrados,
-    };
-
-    res.json({
+    return res.json({
       ok: true,
-      viaje: { nombre, activa: viaje.activa },
-      sesionActual,
-      acumulado,
+      viaje: {
+        nombre,
+        activa: true
+      },
+      resumen: {
+        total,
+        ok: total,
+        duplicados: 0,
+        errores: 0
+      }
     });
+
   } catch (err) {
-    res.status(500).json({ ok: false, error: err.message });
+
+    console.error(err);
+
+    return res.status(500).json({
+      ok: false,
+      error: err.message
+    });
+
   }
+
 });
 
 // =====================================================
@@ -777,53 +775,53 @@ app.get("/api/viajes/:nombre/resumen", async (req, res) => {
 // =====================================================
 
 app.get("/api/viajes/:nombre/pivot", async (req, res) => {
+
   try {
+
     const nombre = decodeURIComponent(req.params.nombre);
-    const viaje = sesionesViaje[nombre];
 
-    if (!viaje) {
-      return res.json({ ok: true, data: [] });
-    }
+    const r = await pool.query(`
+      SELECT
+        bloque,
+        variedad,
+        tamano,
+        tallos,
+        etapa,
+        COUNT(*) AS tabacos,
+        SUM(tallos) AS suma_tallos
 
-    const agrupado = {};
+      FROM registros
 
-    for (const row of viaje.historialSesion || []) {
-      if (!["OK", "REREGISTRADO"].includes(row.resultado)) continue;
+      WHERE viaje = $1
 
-      const key = [
-        row.bloque ?? "",
-        row.variedad ?? "",
-        row.tamano ?? "",
-        row.tallos ?? "",
-        row.etapa ?? "",
-      ].join("|");
+      GROUP BY
+        bloque,
+        variedad,
+        tamano,
+        tallos,
+        etapa
 
-      if (!agrupado[key]) {
-        agrupado[key] = {
-          bloque: row.bloque ?? "",
-          variedad: row.variedad ?? "",
-          tamano: row.tamano ?? "",
-          tallos: row.tallos ?? "",
-          etapa: row.etapa ?? "",
-          tabacos: 0,
-          suma_tallos: 0,
-        };
-      }
+      ORDER BY
+        bloque,
+        variedad
+    `, [nombre]);
 
-      agrupado[key].tabacos += 1;
-      agrupado[key].suma_tallos += Number(row.tallos || 0);
-    }
-
-    const data = Object.values(agrupado).sort((a, b) => {
-      if (String(a.bloque) < String(b.bloque)) return -1;
-      if (String(a.bloque) > String(b.bloque)) return 1;
-      return String(a.variedad).localeCompare(String(b.variedad));
+    return res.json({
+      ok: true,
+      data: r.rows
     });
 
-    res.json({ ok: true, data });
   } catch (err) {
-    res.status(500).json({ ok: false, error: err.message });
+
+    console.error(err);
+
+    return res.status(500).json({
+      ok: false,
+      error: err.message
+    });
+
   }
+
 });
 
 // =====================================================
