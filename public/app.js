@@ -1464,8 +1464,6 @@ function abrirModalYaRegistrados() {
             <div><strong>Bloque:</strong> ${row.bloque ?? "-"}</div>
             <div><strong>Tamaño:</strong> ${row.tamano ?? "-"}</div>
             <div><strong>Tallos:</strong> ${row.tallos ?? "-"}</div>
-            <div><strong>Fecha:</strong> ${fecha}</div>
-            <div><strong>Observación:</strong> ${row.observacion ?? "Ya registrado"}</div>
           </div>
         </div>
       `;
