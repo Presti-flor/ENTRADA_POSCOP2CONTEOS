@@ -1331,37 +1331,36 @@ if (variedadGeneralSelect) {
 }
 if (bloqueGeneralSelect) {
 
-  bloqueGeneralSelect.addEventListener("focus", () => {
-    scrollBloqueado = false;
-  });
+  bloqueGeneralSelect.addEventListener("change", async () => {
 
-  bloqueGeneralSelect.addEventListener("blur", () => {
+    const bloque = bloqueGeneralSelect.value;
 
-    setTimeout(() => {
+    if (!bloque) return;
 
-      if (!escaneando) {
-        focusBarcodeSeguro();
-      }
+    guardarEstadoUI();
 
-    }, 800);
+    await cargarVariedadesGeneralesPorBloque(bloque, "");
+
+    if (variedadGeneralSelect) {
+      variedadGeneralSelect.value = "";
+    }
+
+    await cargarResumenGeneralPorBloque(bloque, "");
+    await cargarDetalleGeneralPorBloque(bloque, "");
   });
 }
 
 if (variedadGeneralSelect) {
 
-  variedadGeneralSelect.addEventListener("focus", () => {
-    scrollBloqueado = false;
-  });
+  variedadGeneralSelect.addEventListener("change", async () => {
 
-  variedadGeneralSelect.addEventListener("blur", () => {
+    const bloque = bloqueGeneralSelect?.value || "";
+    const variedad = variedadGeneralSelect.value;
 
-    setTimeout(() => {
+    guardarEstadoUI();
 
-      if (!escaneando) {
-        focusBarcodeSeguro();
-      }
-
-    }, 800);
+    await cargarResumenGeneralPorBloque(bloque, variedad);
+    await cargarDetalleGeneralPorBloque(bloque, variedad);
   });
 }
 window.addEventListener("load", async () => {
