@@ -56,10 +56,13 @@ let autoRefreshTimer = null;
 let escaneando = false;
 let ultimoAcumulado = null;
 
+let scannerBuffer = "";
+let scannerTimer = null;
+const SCANNER_TIMEOUT_MS = 1200;
+
 const cardDuplicados = document.getElementById("card-duplicados");
 const cardErrores = document.getElementById("card-errores");
 const finalizarBtn = document.getElementById("finalizar-viaje-btn");
-const barcodeInput = document.getElementById("barcode");
 const barcodeVisible = document.getElementById("barcode-visible");
 const formInput = document.getElementById("form");
 const statusBar = document.getElementById("status-bar");
@@ -97,26 +100,12 @@ function setAcumuladoSeguro(valor) {
 }
 
 function focusBarcodeSeguro() {
-  if (!barcodeInput) return;
+  // Ya no se enfoca ningún input oculto.
+  // Esto evita que el navegador baje a la sección "Escaneo en vivo".
+}
 
-  const x = window.scrollX;
-  const y = window.scrollY;
-
-  try {
-    barcodeInput.focus({ preventScroll: true });
-  } catch (e) {
-    barcodeInput.focus();
-  }
-
-  window.scrollTo(x, y);
-
-  requestAnimationFrame(() => {
-    window.scrollTo(x, y);
-  });
-
-  setTimeout(() => {
-    window.scrollTo(x, y);
-  }, 100);
+function focusBarcodeSinScroll() {
+  focusBarcodeSeguro();
 }
 
 function conservarPosicionPantalla(fn) {
@@ -151,7 +140,7 @@ function setStatus(texto, tipo = "neutral") {
 }
 
 function mantenerFoco() {
-  // intencionalmente vacío para no mover la pantalla
+  // No se usa foco forzado.
 }
 
 function guardarEstadoUI() {
@@ -178,11 +167,6 @@ function actualizarAlertasResumen(duplicados, errores) {
   }
 }
 
-// Compatibilidad con código viejo
-function focusBarcodeSinScroll() {
-  focusBarcodeSeguro();
-}
-
 function limpiarResumenViaje() {
   setText(totalEscaneados, 0);
   setText(totalDuplicados, 0);
@@ -196,7 +180,7 @@ function limpiarResumenViaje() {
   if (resumenVariedadBody) {
     resumenVariedadBody.innerHTML = `
       <tr>
-        <td colspan="3" class="empty-row">Sin registros por variedad.</td>
+        <td colspan="6" class="empty-row">Sin registros por variedad.</td>
       </tr>
     `;
   }
@@ -212,7 +196,7 @@ function limpiarResumenViaje() {
   if (detalleBody) {
     detalleBody.innerHTML = `
       <tr>
-        <td colspan="14" class="empty-row">Sin registros todavía.</td>
+        <td colspan="11" class="empty-row">Sin registros todavía.</td>
       </tr>
     `;
   }
@@ -585,7 +569,7 @@ async function activarViaje(nombre) {
     if (detalleBody) {
       detalleBody.innerHTML = `
         <tr>
-          <td colspan="14" class="empty-row">Sin registros todavía.</td>
+          <td colspan="11" class="empty-row">Sin registros todavía.</td>
         </tr>
       `;
     }
@@ -605,18 +589,18 @@ async function activarViaje(nombre) {
     if (resumenVariedadBody) {
       resumenVariedadBody.innerHTML = `
         <tr>
-          <td colspan="3" class="empty-row">Sin registros por variedad.</td>
+          <td colspan="6" class="empty-row">Sin registros por variedad.</td>
         </tr>
       `;
     }
 
-    await refrescarResumenDesdeBD();
-    await cargarContadorGeneralBD();
+    await conservarPosicionPantalla(async () => {
+      await refrescarResumenDesdeBD();
+      await cargarContadorGeneralBD();
+    });
 
     setStatus(`Viaje ${viajeNombre} activado`, "ok");
-
     iniciarAutoRefreshViaje();
-    focusBarcodeSinScroll();
   } catch (err) {
     console.error("Error activando viaje:", err);
     setStatus("Error activando viaje", "error");
@@ -662,8 +646,6 @@ async function finalizarViaje() {
     });
 
     limpiarResumenViaje();
-
-    if (barcodeInput) barcodeInput.value = "";
   } catch (err) {
     console.error("Error finalizando viaje:", err);
     setStatus("Error finalizando viaje", "error");
@@ -718,7 +700,6 @@ async function escanearCodigo(barcode) {
 
     await conservarPosicionPantalla(async () => {
       await refrescarTodo();
-      focusBarcodeSinScroll();
     });
   } catch (error) {
     console.error("Error escaneando:", error);
@@ -759,7 +740,6 @@ async function reregistrarCodigo(barcodeOriginal) {
 
     await conservarPosicionPantalla(async () => {
       await refrescarTodo();
-      focusBarcodeSinScroll();
     });
   } catch (err) {
     console.error("Error en re-registro:", err);
@@ -1123,7 +1103,6 @@ async function agregarRegistroManualDesdeResumen(data) {
 
     await conservarPosicionPantalla(async () => {
       await refrescarTodo();
-      focusBarcodeSinScroll();
     });
   } catch (err) {
     console.error("Error agregando registro manual:", err);
@@ -1144,7 +1123,7 @@ async function refrescarDetalle() {
     if (resumenVariedadBody) {
       resumenVariedadBody.innerHTML = `
         <tr>
-          <td colspan="5" class="empty-row">Sin registros por variedad.</td>
+          <td colspan="6" class="empty-row">Sin registros por variedad.</td>
         </tr>
       `;
     }
@@ -1190,7 +1169,6 @@ async function eliminarRegistro(idLocal) {
 
     await conservarPosicionPantalla(async () => {
       await refrescarTodo();
-      focusBarcodeSinScroll();
     });
   } catch (err) {
     console.error("Error eliminando registro:", err);
@@ -1226,8 +1204,6 @@ async function eliminarRegistroReal(barcode) {
         await cargarResumenGeneralPorBloque(bloque, variedad);
         await cargarDetalleGeneralPorBloque(bloque, variedad);
       }
-
-      focusBarcodeSinScroll();
     });
   } catch (err) {
     console.error("Error eliminando registro real:", err);
@@ -1275,6 +1251,123 @@ function verDetalleFila(btn) {
   );
 }
 
+function actualizarDisplayScanner() {
+  if (!barcodeVisible) return;
+
+  barcodeVisible.textContent = scannerBuffer || "Esperando escaneo...";
+}
+
+function limpiarScannerBuffer() {
+  scannerBuffer = "";
+  actualizarDisplayScanner();
+
+  if (scannerTimer) {
+    clearTimeout(scannerTimer);
+    scannerTimer = null;
+  }
+}
+
+async function procesarScannerBuffer() {
+  const codigo = String(scannerBuffer || "")
+    .replace(/[\r\n]/g, "")
+    .trim();
+
+  limpiarScannerBuffer();
+
+  if (!codigo) return;
+
+  const x = window.scrollX;
+  const y = window.scrollY;
+
+  escaneando = true;
+  bloquearScroll();
+
+  await escanearCodigo(codigo);
+
+  window.scrollTo(x, y);
+
+  requestAnimationFrame(() => {
+    window.scrollTo(x, y);
+  });
+
+  setTimeout(() => {
+    window.scrollTo(x, y);
+    escaneando = false;
+    restaurarScroll();
+  }, 120);
+}
+
+function reiniciarTimerScanner() {
+  if (scannerTimer) clearTimeout(scannerTimer);
+
+  scannerTimer = setTimeout(() => {
+    // No procesa automáticamente. Solo limpia si quedó texto incompleto.
+    // El escáner normalmente envía Enter al final.
+    if (!escaneando) {
+      limpiarScannerBuffer();
+    }
+  }, SCANNER_TIMEOUT_MS);
+}
+
+function debeIgnorarTecla(e) {
+  if (e.ctrlKey || e.altKey || e.metaKey) return true;
+
+  const target = e.target;
+  const tag = target?.tagName?.toLowerCase();
+
+  if (tag === "select") return true;
+  if (tag === "textarea") return true;
+
+  if (tag === "input") {
+    const tipo = String(target.type || "").toLowerCase();
+    if (tipo !== "button" && tipo !== "submit" && tipo !== "checkbox" && tipo !== "radio") {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+document.addEventListener("keydown", async (e) => {
+  if (debeIgnorarTecla(e)) return;
+
+  if (escaneando) {
+    e.preventDefault();
+    return;
+  }
+
+  if (e.key === "Enter") {
+    if (!scannerBuffer.trim()) return;
+
+    e.preventDefault();
+    await procesarScannerBuffer();
+    return;
+  }
+
+  if (e.key === "Backspace") {
+    if (!scannerBuffer) return;
+
+    e.preventDefault();
+    scannerBuffer = scannerBuffer.slice(0, -1);
+    actualizarDisplayScanner();
+    reiniciarTimerScanner();
+    return;
+  }
+
+  if (e.key === "Escape") {
+    e.preventDefault();
+    limpiarScannerBuffer();
+    return;
+  }
+
+  if (e.key.length === 1) {
+    e.preventDefault();
+    scannerBuffer += e.key;
+    actualizarDisplayScanner();
+    reiniciarTimerScanner();
+  }
+});
+
 if (finalizarBtn) {
   finalizarBtn.addEventListener("click", finalizarViaje);
 }
@@ -1321,6 +1414,7 @@ window.addEventListener("load", async () => {
 
   limpiarResumenViaje();
   limpiarConsultaGeneral();
+  limpiarScannerBuffer();
 
   const { viajeGuardado, bloqueGuardado, variedadGuardada } = restaurarEstadoUI();
 
@@ -1348,7 +1442,7 @@ window.addEventListener("load", async () => {
     if (detalleBody) {
       detalleBody.innerHTML = `
         <tr>
-          <td colspan="14" class="empty-row">Sin registros todavía.</td>
+          <td colspan="11" class="empty-row">Sin registros todavía.</td>
         </tr>
       `;
     }
@@ -1368,7 +1462,7 @@ window.addEventListener("load", async () => {
     if (resumenVariedadBody) {
       resumenVariedadBody.innerHTML = `
         <tr>
-          <td colspan="3" class="empty-row">Sin registros por variedad.</td>
+          <td colspan="6" class="empty-row">Sin registros por variedad.</td>
         </tr>
       `;
     }
@@ -1391,61 +1485,4 @@ window.addEventListener("load", async () => {
     await cargarResumenGeneralPorBloque(bloqueGuardado, variedadGuardada || "");
     await cargarDetalleGeneralPorBloque(bloqueGuardado, variedadGuardada || "");
   }
-
-  focusBarcodeSinScroll();
 });
-
-if (barcodeInput) {
-  focusBarcodeSinScroll();
-
-  barcodeInput.addEventListener("input", () => {
-    if (barcodeVisible) {
-      barcodeVisible.textContent = barcodeInput.value || "Esperando escaneo...";
-    }
-  });
-
-  barcodeInput.addEventListener("keydown", async (e) => {
-    if (e.key !== "Enter") return;
-
-    e.preventDefault();
-
-    const x = window.scrollX;
-    const y = window.scrollY;
-
-    escaneando = true;
-    bloquearScroll();
-
-    const codigo = String(barcodeInput.value || "")
-      .replace(/[\r\n]/g, "")
-      .trim();
-
-    barcodeInput.value = "";
-
-    if (barcodeVisible) {
-      barcodeVisible.textContent = "Esperando escaneo...";
-    }
-
-    if (!codigo) {
-      escaneando = false;
-      window.scrollTo(x, y);
-      restaurarScroll();
-      focusBarcodeSinScroll();
-      return;
-    }
-
-    await escanearCodigo(codigo);
-
-    window.scrollTo(x, y);
-
-    requestAnimationFrame(() => {
-      window.scrollTo(x, y);
-    });
-
-    setTimeout(() => {
-      window.scrollTo(x, y);
-      escaneando = false;
-      restaurarScroll();
-      focusBarcodeSinScroll();
-    }, 120);
-  });
-}
