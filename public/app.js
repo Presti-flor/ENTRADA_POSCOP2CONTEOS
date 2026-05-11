@@ -271,22 +271,21 @@ async function cargarContadorGeneralBD() {
 
   try {
 
-    const res = await fetch("/api/contador-general");
+    const response = await fetch("/api/contador-general");
 
-    if (!res.ok) {
-      throw new Error(`HTTP ${res.status}`);
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}`);
     }
 
-    const json = await res.json();
+    const data = await response.json();
 
-    console.log("CONTADOR GENERAL:", json);
+    const total = Number(data.total || 0);
 
-    const total = Number(json.total || 0);
+    const contadorEl = document.getElementById("contador-general-bd");
 
-    const el = document.getElementById("contador-general-bd");
-
-    if (el) {
-      el.textContent = total.toLocaleString("es-CO");
+    if (contadorEl) {
+      contadorEl.textContent =
+        total.toLocaleString("es-CO");
     }
 
   } catch (err) {
@@ -297,6 +296,7 @@ async function cargarContadorGeneralBD() {
     );
 
   }
+
 }
 
 async function cargarBloquesGenerales() {
