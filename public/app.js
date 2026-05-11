@@ -73,6 +73,7 @@ const totalDuplicados = document.getElementById("total-duplicados");
 const totalErrores = document.getElementById("total-errores");
 const totalAcumuladoGeneral = document.getElementById("total-acumulado-general");
 const barcodeInput = document.getElementById("barcode");
+window.barcodeInput = barcodeInput;
 const pivotBody = document.getElementById("pivot-body");
 const detalleBody = document.getElementById("detalle-body");
 const yaRegistradosLista = document.getElementById("ya-registrados-lista");
@@ -106,16 +107,15 @@ function focusBarcodeSeguro() {
   const activo = document.activeElement;
   const tag = activo?.tagName?.toLowerCase();
 
-  // NO ROBAR FOCO A CONTROLES
+  // NO ROBAR FOCO
   if (
     tag === "select" ||
-    tag === "textarea" ||
-    tag === "button"
+    tag === "textarea"
   ) {
     return;
   }
 
-  // NO ROBAR FOCO SI ES INPUT NORMAL
+  // INPUTS NORMALES
   if (
     tag === "input" &&
     activo !== barcodeInput
@@ -127,10 +127,15 @@ function focusBarcodeSeguro() {
   const y = window.scrollY;
 
   try {
+
     barcodeInput.focus({
       preventScroll: true
     });
+
+    barcodeInput.click();
+
   } catch (e) {
+
     barcodeInput.focus();
   }
 
@@ -139,10 +144,6 @@ function focusBarcodeSeguro() {
   requestAnimationFrame(() => {
     window.scrollTo(x, y);
   });
-
-  setTimeout(() => {
-    window.scrollTo(x, y);
-  }, 50);
 }
 
 function focusBarcodeSinScroll() {
@@ -1464,170 +1465,27 @@ document.addEventListener("visibilitychange", () => {
   }
 });
 window.addEventListener("load", async () => {
+
   if (!pedirAcceso()) return;
-  activarEscuchaScannerAutomatica();
+
+  setTimeout(() => {
+    focusBarcodeSeguro();
+  }, 300);
+
+  setInterval(() => {
+
+    if (escaneando) return;
+
+    if (document.activeElement !== barcodeInput) {
+      focusBarcodeSeguro();
+    }
+
+  }, 1500);
+
   await cargarContadorGeneralBD();
   await cargarBloquesGenerales();
   await cargarViajes();
 
-
   limpiarResumenViaje();
   limpiarConsultaGeneral();
-  limpiarScannerBuffer();
-
-  const { viajeGuardado, bloqueGuardado, variedadGuardada } = restaurarEstadoUI();
-
-  if (viajeGuardado) {
-    viajeActivo = viajeGuardado;
-
-    setText(viajeActivoLabel, viajeGuardado);
-
-    document.querySelectorAll(".btn-viaje").forEach((b) => {
-      if (b.textContent === viajeGuardado) {
-        b.classList.add("activo");
-      } else {
-        b.classList.remove("activo");
-      }
-    });
-
-    setText(totalEscaneados, 0);
-    setText(totalDuplicados, 0);
-    setText(totalErrores, 0);
-
-    actualizarAlertasResumen(0, 0);
-
-    cacheDetalle = [];
-
-    if (detalleBody) {
-      detalleBody.innerHTML = `
-        <tr>
-          <td colspan="11" class="empty-row">Sin registros todavía.</td>
-        </tr>
-      `;
-    }
-
-    if (pivotBody) {
-      pivotBody.innerHTML = `
-        <tr>
-          <td colspan="8" class="empty-row">Sin datos para mostrar.</td>
-        </tr>
-      `;
-    }
-
-    if (yaRegistradosLista) {
-      yaRegistradosLista.innerHTML = `<div class="ya-registrado-item">Sin novedades.</div>`;
-    }
-
-    if (resumenVariedadBody) {
-      resumenVariedadBody.innerHTML = `
-        <tr>
-          <td colspan="6" class="empty-row">Sin registros por variedad.</td>
-        </tr>
-      `;
-    }
-
-    await refrescarResumenDesdeBD();
-    await cargarContadorGeneralBD();
-
-    iniciarAutoRefreshViaje();
-  }
-
-  if (bloqueGuardado) {
-    bloqueGeneralSelect.value = bloqueGuardado;
-
-    await cargarVariedadesGeneralesPorBloque(bloqueGuardado, variedadGuardada || "");
-
-    if (variedadGuardada) {
-      variedadGeneralSelect.value = variedadGuardada;
-    }
-
-    await cargarResumenGeneralPorBloque(bloqueGuardado, variedadGuardada || "");
-    await cargarDetalleGeneralPorBloque(bloqueGuardado, variedadGuardada || "");
-  }
-  if (barcodeInput) {
-
-  focusBarcodeSeguro();
-
-  barcodeInput.addEventListener("input", () => {
-
-    if (barcodeVisible) {
-      barcodeVisible.textContent =
-        barcodeInput.value || "Esperando escaneo...";
-    }
-  });
-
-  barcodeInput.addEventListener("keydown", async (e) => {
-
-    if (e.key !== "Enter") return;
-
-    e.preventDefault();
-
-    const codigo = String(barcodeInput.value || "")
-      .replace(/[\r\n]/g, "")
-      .trim();
-
-    barcodeInput.value = "";
-
-    if (barcodeVisible) {
-      barcodeVisible.textContent = "Esperando escaneo...";
-    }
-
-    if (!codigo) return;
-
-    await escanearCodigo(codigo);
-
-    focusBarcodeSeguro();
-  });
-
-  barcodeInput.addEventListener("blur", () => {
-
-    if (escaneando) return;
-
-    setTimeout(() => {
-      focusBarcodeSeguro();
-    }, 100);
-  });
-}
-
-document.addEventListener("click", (e) => {
-
-  const target = e.target;
-
-  if (!target) return;
-
-  const tag = target.tagName?.toLowerCase();
-
-  // NO AUTOFOCUS EN CONTROLES
-  if (
-    tag === "select" ||
-    tag === "option" ||
-    tag === "button" ||
-    tag === "textarea"
-  ) {
-    return;
-  }
-
-  // INPUT NORMAL
-  if (
-    tag === "input" &&
-    target !== barcodeInput
-  ) {
-    return;
-  }
-
-  setTimeout(() => {
-
-    if (!escaneando) {
-      focusBarcodeSeguro();
-    }
-
-  }, 300);
-});
-
-window.addEventListener("load", () => {
-
-  setTimeout(() => {
-    focusBarcodeSeguro();
-  }, 300);
-});
 });
