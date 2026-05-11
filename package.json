@@ -4,7 +4,7 @@
   "description": "Sistema de registro y re-registro con serial de 9 dígitos",
   "main": "index.js",
   "scripts": {
-    "start": "node index.js"
+    "start": "node server.js"
   },
   "keywords": [],
   "author": "",
