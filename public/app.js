@@ -59,7 +59,11 @@ let ultimoAcumulado = null;
 let scannerBuffer = "";
 let scannerTimer = null;
 const SCANNER_TIMEOUT_MS = 1200;
+const modalYaRegistrados = document.getElementById("modal-ya-registrados");
+const modalYaRegistradosBody = document.getElementById("modal-ya-registrados-body");
+const cerrarModalYaRegistrados = document.getElementById("cerrar-modal-ya-registrados");
 
+let cacheYaRegistrados = [];
 const cardDuplicados = document.getElementById("card-duplicados");
 const cardErrores = document.getElementById("card-errores");
 const finalizarBtn = document.getElementById("finalizar-viaje-btn");
@@ -84,6 +88,8 @@ const bloqueGeneralSelect = document.getElementById("bloque-general-select");
 const variedadGeneralSelect = document.getElementById("variedad-general-select");
 const generalBloqueBody = document.getElementById("general-bloque-body");
 const generalBloqueDetalleBody = document.getElementById("general-bloque-detalle-body");
+
+
 
 function setText(el, value) {
   if (el) el.textContent = value;
@@ -1011,28 +1017,34 @@ function badgeResultado(resultado) {
 function renderYaRegistrados(data) {
   if (!yaRegistradosLista) return;
 
-  const duplicados = data
-    .filter((x) => x.resultado === "YA_REGISTRADO" && x.puede_reregistrar === true)
-    .slice(0, 8);
+  const duplicados = (data || [])
+    .filter((x) => x.resultado === "YA_REGISTRADO")
+    .slice(0, 50);
+
+  cacheYaRegistrados = duplicados;
 
   if (!duplicados.length) {
     yaRegistradosLista.innerHTML = `<div class="ya-registrado-item">Sin novedades.</div>`;
     return;
   }
 
-  yaRegistradosLista.innerHTML = duplicados.map((row) => {
+  yaRegistradosLista.innerHTML = duplicados.slice(0, 8).map((row) => {
     const fecha = row.fechaAnterior
       ? new Date(row.fechaAnterior).toLocaleString("es-CO")
-      : "Fecha no disponible";
+      : (row.fecha ? new Date(row.fecha).toLocaleString("es-CO") : "Fecha no disponible");
 
     return `
       <div class="ya-registrado-item">
         <strong>${row.barcode}</strong><br>
         Variedad: ${row.variedad ?? "-"} | Bloque: ${row.bloque ?? "-"} | Tamaño: ${row.tamano ?? "-"}<br>
         Ya existía desde: ${fecha}<br><br>
-        <button class="btn-primary btn-reregistrar" data-barcode="${row.barcode}">
-          Re-registrar
-        </button>
+        ${
+          row.puede_reregistrar === true
+            ? `<button class="btn-primary btn-reregistrar" data-barcode="${row.barcode}">
+                Re-registrar
+              </button>`
+            : ""
+        }
       </div>
     `;
   }).join("");
@@ -1346,7 +1358,25 @@ function limpiarScannerBuffer() {
 }
 
 
+if (cardDuplicados) {
+  cardDuplicados.classList.add("clickable-card");
 
+  cardDuplicados.addEventListener("click", () => {
+    abrirModalYaRegistrados();
+  });
+}
+
+if (cerrarModalYaRegistrados) {
+  cerrarModalYaRegistrados.addEventListener("click", cerrarModalYaRegistradosFn);
+}
+
+if (modalYaRegistrados) {
+  modalYaRegistrados.addEventListener("click", (e) => {
+    if (e.target === modalYaRegistrados) {
+      cerrarModalYaRegistradosFn();
+    }
+  });
+}
 
 if (finalizarBtn) {
   finalizarBtn.addEventListener("click", finalizarViaje);

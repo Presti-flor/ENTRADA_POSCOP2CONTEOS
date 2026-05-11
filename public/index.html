@@ -6,6 +6,90 @@
   <title>INGRESO RECEPCION POSCO - P2</title>
 
   <style>
+
+    /* Modal */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.65);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  padding: 20px;
+}
+
+.modal-overlay.show {
+  display: flex;
+}
+
+.modal-box {
+  width: 100%;
+  max-width: 720px;
+  max-height: 85vh;
+  overflow: hidden;
+  border-radius: 18px;
+  background: #0f172a;
+  border: 1px solid rgba(255,255,255,0.08);
+  box-shadow: 0 20px 60px rgba(0,0,0,0.45);
+  color: #fff;
+}
+
+.modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  border-bottom: 1px solid rgba(255,255,255,0.08);
+}
+
+.modal-header h2 {
+  margin: 0;
+  font-size: 1.2rem;
+}
+
+.modal-close {
+  border: none;
+  background: transparent;
+  color: #fff;
+  font-size: 2rem;
+  cursor: pointer;
+  line-height: 1;
+}
+
+.modal-body {
+  padding: 16px 20px;
+  overflow-y: auto;
+  max-height: calc(85vh - 70px);
+}
+
+.modal-dup-item {
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(255,255,255,0.06);
+  border-radius: 14px;
+  padding: 14px;
+  margin-bottom: 12px;
+}
+
+.modal-dup-item strong {
+  font-size: 1rem;
+}
+
+.modal-dup-meta {
+  margin-top: 6px;
+  color: #cbd5e1;
+  line-height: 1.45;
+}
+
+.clickable-card {
+  cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.clickable-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 25px rgba(0,0,0,0.18);
+}
     *{box-sizing:border-box;margin:0;padding:0}
 
     :root{
@@ -957,5 +1041,19 @@
   </div>
 
   <script src="app.js"></script>
+
+  <!-- MODAL YA REGISTRADOS -->
+<div id="modal-ya-registrados" class="modal-overlay">
+  <div class="modal-box">
+    <div class="modal-header">
+      <h2>Ya registrados</h2>
+      <button id="cerrar-modal-ya-registrados" class="modal-close">×</button>
+    </div>
+
+    <div id="modal-ya-registrados-body" class="modal-body">
+      <div class="empty-row">No hay registros duplicados.</div>
+    </div>
+  </div>
+</div>
 </body>
 </html>
