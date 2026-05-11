@@ -1175,38 +1175,94 @@ async function agregarRegistroManualDesdeResumen(data) {
     setStatus("Error agregando registro manual", "error");
   }
 }
+// =====================================================
+// LECTOR ESCÁNER ROBUSTO
+// Acepta códigos desde 2 dígitos hasta más de 17
+// =====================================================
+
+let scannerAcumulado = "";
+let scannerAcumuladoTimer = null;
+
+const LONGITUD_MINIMA_BARCODE = 2;
+
+// Tiempo de espera para considerar que el escáner ya terminó de enviar.
+// Si sigue partiendo códigos, sube este valor a 900 o 1000.
+const TIEMPO_ESPERA_SCANNER = 700;
+
+function limpiarEntradaScanner() {
+  if (barcodeInput) {
+    barcodeInput.value = "";
+  }
+
+  if (barcodeVisible) {
+    barcodeVisible.textContent = "Esperando escaneo...";
+  }
+}
+
+async function procesarScannerAcumulado() {
+  const codigo = String(scannerAcumulado || "")
+    .replace(/[^\d]/g, "")
+    .trim();
+
+  scannerAcumulado = "";
+  limpiarEntradaScanner();
+
+  if (!codigo) return;
+
+  if (codigo.length < LONGITUD_MINIMA_BARCODE) {
+    console.warn("Fragmento ignorado:", codigo);
+    setStatus(`Fragmento ignorado: ${codigo}`, "warn");
+    return;
+  }
+
+  await escanearCodigo(codigo);
+
+  setTimeout(() => {
+    focusBarcodeSeguro();
+  }, 100);
+}
+
+function programarProcesamientoScanner() {
+  if (scannerAcumuladoTimer) {
+    clearTimeout(scannerAcumuladoTimer);
+  }
+
+  scannerAcumuladoTimer = setTimeout(async () => {
+    await procesarScannerAcumulado();
+  }, TIEMPO_ESPERA_SCANNER);
+}
+
 if (barcodeInput) {
+  barcodeInput.addEventListener("input", () => {
+    const valor = String(barcodeInput.value || "")
+      .replace(/[^\d]/g, "");
+
+    if (!valor) return;
+
+    scannerAcumulado += valor;
+
+    if (barcodeVisible) {
+      barcodeVisible.textContent = scannerAcumulado;
+    }
+
+    barcodeInput.value = "";
+
+    programarProcesamientoScanner();
+  });
 
   barcodeInput.addEventListener("keydown", async (e) => {
-
     if (e.key !== "Enter") return;
 
     e.preventDefault();
 
-    const codigo = String(barcodeInput.value || "")
-      .replace(/[\r\n]/g, "")
-      .trim();
-
-    barcodeInput.value = "";
-
-    if (barcodeVisible) {
-      barcodeVisible.textContent = "Esperando escaneo...";
+    if (scannerAcumuladoTimer) {
+      clearTimeout(scannerAcumuladoTimer);
+      scannerAcumuladoTimer = null;
     }
 
-    if (!codigo) return;
-
-    await escanearCodigo(codigo);
-
-    focusBarcodeSeguro();
-  });
-
-  barcodeInput.addEventListener("input", () => {
-
-    if (barcodeVisible) {
-
-      barcodeVisible.textContent =
-        barcodeInput.value || "Esperando escaneo...";
-    }
+    setTimeout(async () => {
+      await procesarScannerAcumulado();
+    }, 120);
   });
 }
 

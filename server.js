@@ -259,7 +259,7 @@ app.post("/api/escanear", async (req, res) => {
       });
     }
 
-    if (codeInput.length < 3) {
+    if (codeInput.length < 2) {
       return res.status(400).json({
         ok: false,
         resultado: "CODIGO_CORTO",
