@@ -750,7 +750,7 @@ async function escanearCodigo(barcode) {
   });
 
   pintarDuplicadosYErrores();
-  renderYaRegistrados(cacheYaRegistrados);
+  renderYaRegistrados();
 
   setStatus(`${barcodeLimpio} → YA REGISTRADO`, "warn");
 
@@ -1038,14 +1038,18 @@ function badgeResultado(resultado) {
   return resultado || "";
 }
 
-function renderYaRegistrados(data) {
+function renderYaRegistrados(data = null) {
   if (!yaRegistradosLista) return;
 
-  const duplicados = (data || [])
-    .filter((x) => x.resultado === "YA_REGISTRADO")
-    .slice(0, 50);
+  if (Array.isArray(data) && data.length) {
+    const nuevosDuplicados = data.filter((x) => x.resultado === "YA_REGISTRADO");
 
-  cacheYaRegistrados = duplicados;
+    if (nuevosDuplicados.length) {
+      cacheYaRegistrados = nuevosDuplicados.slice(0, 50);
+    }
+  }
+
+  const duplicados = cacheYaRegistrados || [];
 
   if (!duplicados.length) {
     yaRegistradosLista.innerHTML = `<div class="ya-registrado-item">Sin novedades.</div>`;
@@ -1059,26 +1063,13 @@ function renderYaRegistrados(data) {
 
     return `
       <div class="ya-registrado-item">
-        <strong>${row.barcode}</strong><br>
+        <strong>${row.barcode ?? "-"}</strong><br>
         Variedad: ${row.variedad ?? "-"} | Bloque: ${row.bloque ?? "-"} | Tamaño: ${row.tamano ?? "-"}<br>
-        Ya existía desde: ${fecha}<br><br>
-        ${
-          row.puede_reregistrar === true
-            ? `<button class="btn-primary btn-reregistrar" data-barcode="${row.barcode}">
-                Re-registrar
-              </button>`
-            : ""
-        }
+        Tallos: ${row.tallos ?? "-"}<br>
+        Fecha: ${fecha}
       </div>
     `;
   }).join("");
-
-  document.querySelectorAll(".btn-reregistrar").forEach((btn) => {
-    btn.addEventListener("click", async () => {
-      const barcode = btn.dataset.barcode;
-      await reregistrarCodigo(barcode);
-    });
-  });
 }
 
 function renderDetalle(data) {
@@ -1336,9 +1327,8 @@ async function refrescarDetalle() {
 
     cacheDetalle = json.data || [];
 
-    renderYaRegistrados(cacheDetalle);
-    renderDetalle(cacheDetalle);
-    refrescarResumenPorVariedad();
+renderDetalle(cacheDetalle);
+refrescarResumenPorVariedad();
   } catch (err) {
     console.error("Error refrescando detalle:", err);
   }
@@ -1454,25 +1444,28 @@ function verDetalleFila(btn) {
 function abrirModalYaRegistrados() {
   if (!modalYaRegistrados || !modalYaRegistradosBody) return;
 
-  if (!cacheYaRegistrados.length) {
+  const duplicados = cacheYaRegistrados || [];
+
+  if (!duplicados.length) {
     modalYaRegistradosBody.innerHTML = `
       <div class="empty-row">No hay registros duplicados para mostrar.</div>
     `;
   } else {
-    modalYaRegistradosBody.innerHTML = cacheYaRegistrados.map((row) => {
+    modalYaRegistradosBody.innerHTML = duplicados.map((row) => {
       const fecha = row.fechaAnterior
         ? new Date(row.fechaAnterior).toLocaleString("es-CO")
         : (row.fecha ? new Date(row.fecha).toLocaleString("es-CO") : "Fecha no disponible");
 
       return `
         <div class="modal-dup-item">
-          <strong>${row.barcode}</strong>
+          <strong>${row.barcode ?? "-"}</strong>
           <div class="modal-dup-meta">
             <div><strong>Variedad:</strong> ${row.variedad ?? "-"}</div>
             <div><strong>Bloque:</strong> ${row.bloque ?? "-"}</div>
             <div><strong>Tamaño:</strong> ${row.tamano ?? "-"}</div>
             <div><strong>Tallos:</strong> ${row.tallos ?? "-"}</div>
             <div><strong>Fecha:</strong> ${fecha}</div>
+            <div><strong>Observación:</strong> ${row.observacion ?? "Ya registrado"}</div>
           </div>
         </div>
       `;
