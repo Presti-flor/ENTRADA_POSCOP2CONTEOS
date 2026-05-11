@@ -1264,12 +1264,66 @@ document.addEventListener("keydown", async (e) => {
     return;
   }
 
-  if (e.key === "Enter") {
-    if (!lectorBuffer.trim()) return;
+  if (e.key === "Enter" || e.key === "Tab") {
+  if (!lectorBuffer.trim()) return;
+
+  e.preventDefault();
+
+  const codigo = lectorBuffer
+    .replace(/[^\d]/g, "")
+    .trim();
+
+  limpiarLectorGlobal();
+
+  if (!codigo) return;
+
+  if (codigo.length < 2) {
+    setStatus(`Código demasiado corto: ${codigo}`, "warn");
+    return;
+  }
+
+  lectorProcesando = true;
+  escaneando = true;
+
+  try {
+    await escanearCodigo(codigo);
+  } finally {
+    lectorProcesando = false;
+    escaneando = false;
+
+    setTimeout(() => {
+      focusBarcodeSeguro();
+    }, 100);
+  }
+}
+});
+// =====================================================
+// FALLBACK PARA PISTOLA QUE ESCRIBE DIRECTO EN EL INPUT
+// =====================================================
+if (barcodeInput) {
+  barcodeInput.addEventListener("input", () => {
+    const valor = String(barcodeInput.value || "")
+      .replace(/[^\d]/g, "");
+
+    if (!valor) return;
+
+    lectorBuffer = valor;
+
+    if (barcodeVisible) {
+      barcodeVisible.textContent = lectorBuffer;
+    }
+  });
+
+  barcodeInput.addEventListener("keydown", async (e) => {
+    if (e.key !== "Enter" && e.key !== "Tab") return;
 
     e.preventDefault();
 
-    const codigo = lectorBuffer
+    if (lectorProcesando) return;
+
+    let codigo = lectorBuffer || barcodeInput.value;
+
+    codigo = String(codigo || "")
       .replace(/[^\d]/g, "")
       .trim();
 
@@ -1295,9 +1349,8 @@ document.addEventListener("keydown", async (e) => {
         focusBarcodeSeguro();
       }, 100);
     }
-  }
-});
-
+  });
+}
 async function refrescarDetalle() {
   if (!detalleBody) return;
 
