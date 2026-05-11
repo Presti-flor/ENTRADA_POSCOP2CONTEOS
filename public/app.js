@@ -767,9 +767,25 @@ async function escanearCodigo(barcode) {
   setStatus(`Escaneo procesado: ${barcodeLimpio}`, "ok");
 }
 
-    await conservarPosicionPantalla(async () => {
-      await refrescarTodo();
-    });
+    // Actualización rápida visual inmediata
+if (data.resultado === "OK" || data.resultado === "REREGISTRADO") {
+  const actual = Number(totalEscaneados?.textContent || 0);
+  setText(totalEscaneados, actual + 1);
+
+  const acumulado = Number(totalAcumuladoGeneral?.textContent || 0);
+  setAcumuladoSeguro(acumulado + 1);
+}
+
+// Refresco completo en segundo plano, sin bloquear el siguiente escaneo
+setTimeout(() => {
+  conservarPosicionPantalla(async () => {
+    await refrescarResumen();
+    await refrescarPivot();
+    await refrescarDetalle();
+    await refrescarResumenDesdeBD();
+    await cargarContadorGeneralBD();
+  });
+}, 250);
   } catch (error) {
     console.error("Error escaneando:", error);
     setStatus("Error escaneando", "error");
