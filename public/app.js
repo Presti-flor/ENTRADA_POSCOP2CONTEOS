@@ -1326,7 +1326,41 @@ if (variedadGeneralSelect) {
     });
   });
 }
+if (bloqueGeneralSelect) {
 
+  bloqueGeneralSelect.addEventListener("focus", () => {
+    scrollBloqueado = false;
+  });
+
+  bloqueGeneralSelect.addEventListener("blur", () => {
+
+    setTimeout(() => {
+
+      if (!escaneando) {
+        focusBarcodeSeguro();
+      }
+
+    }, 800);
+  });
+}
+
+if (variedadGeneralSelect) {
+
+  variedadGeneralSelect.addEventListener("focus", () => {
+    scrollBloqueado = false;
+  });
+
+  variedadGeneralSelect.addEventListener("blur", () => {
+
+    setTimeout(() => {
+
+      if (!escaneando) {
+        focusBarcodeSeguro();
+      }
+
+    }, 800);
+  });
+}
 window.addEventListener("load", async () => {
   if (!pedirAcceso()) return;
 
@@ -1454,9 +1488,19 @@ window.addEventListener("load", async () => {
 
 document.addEventListener("click", (e) => {
 
-  const tag = e.target?.tagName?.toLowerCase();
+  const target = e.target;
+
+  if (!target) return;
+
+  const tag = target.tagName?.toLowerCase();
+
+  const dentroConsulta =
+    target.closest("#consulta") ||
+    target.closest("#bloque-general-select") ||
+    target.closest("#variedad-general-select");
 
   if (
+    dentroConsulta ||
     tag === "select" ||
     tag === "option" ||
     tag === "input" ||
@@ -1467,8 +1511,12 @@ document.addEventListener("click", (e) => {
   }
 
   setTimeout(() => {
-    focusBarcodeSeguro();
-  }, 50);
+
+    if (!escaneando) {
+      focusBarcodeSeguro();
+    }
+
+  }, 300);
 });
 
 window.addEventListener("load", () => {
