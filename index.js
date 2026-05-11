@@ -582,6 +582,30 @@ app.get("/api/registro/:barcode", async (req, res) => {
 // =====================================================
 // START
 // =====================================================
+
+app.get("/api/contador-general-bd", async (req, res) => {
+  try {
+
+    const r = await pool.query(`
+      SELECT COUNT(*) AS total
+      FROM registros
+    `);
+
+    return res.json({
+      ok: true,
+      total: Number(r.rows[0].total || 0)
+    });
+
+  } catch (err) {
+
+    console.error(err);
+
+    return res.status(500).json({
+      ok: false,
+      error: err.message
+    });
+  }
+});
 app.listen(port, () => {
 
   console.log(`✅ Servidor activo en http://localhost:${port}`);
