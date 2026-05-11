@@ -729,45 +729,47 @@ app.get("/api/general/bloque/:bloque/variedades", async (req, res) => {
 // =====================================================
 
 app.get("/api/viajes/:nombre/resumen", async (req, res) => {
-
   try {
-
     const nombre = decodeURIComponent(req.params.nombre);
+    const viaje = sesionesViaje[nombre];
 
-    const r = await pool.query(`
-      SELECT
-        COUNT(*) AS total
-      FROM registros
-      WHERE viaje = $1
-    `, [nombre]);
+    if (!viaje) {
+      return res.json({
+        ok: true,
+        viaje: { nombre, activa: false },
+        sesionActual: { ok: 0, duplicados: 0, errores: 0, reregistrados: 0, total: 0 },
+        acumulado: { ok: 0, duplicados: 0, errores: 0, reregistrados: 0, total: 0 },
+      });
+    }
 
-    const total = Number(r.rows[0].total || 0);
+    const sesion = viaje.historialSesion || [];
+    const historialTotal = viaje.historial || [];
 
-    return res.json({
+    const sesionActual = {
+      total: sesion.length,
+      ok: sesion.filter((x) => x.resultado === "OK").length,
+      duplicados: sesion.filter((x) => x.resultado === "YA_REGISTRADO").length,
+      errores: sesion.filter((x) => x.resultado === "NO_EXISTE").length,
+      reregistrados: sesion.filter((x) => x.resultado === "REREGISTRADO").length,
+    };
+
+    const acumulado = {
+      total: historialTotal.length,
+      ok: viaje.acumulado.ok,
+      duplicados: viaje.acumulado.duplicados,
+      errores: viaje.acumulado.errores,
+      reregistrados: viaje.acumulado.reregistrados,
+    };
+
+    res.json({
       ok: true,
-      viaje: {
-        nombre,
-        activa: true
-      },
-      resumen: {
-        total,
-        ok: total,
-        duplicados: 0,
-        errores: 0
-      }
+      viaje: { nombre, activa: viaje.activa },
+      sesionActual,
+      acumulado,
     });
-
   } catch (err) {
-
-    console.error(err);
-
-    return res.status(500).json({
-      ok: false,
-      error: err.message
-    });
-
+    res.status(500).json({ ok: false, error: err.message });
   }
-
 });
 
 // =====================================================
@@ -775,53 +777,53 @@ app.get("/api/viajes/:nombre/resumen", async (req, res) => {
 // =====================================================
 
 app.get("/api/viajes/:nombre/pivot", async (req, res) => {
-
   try {
-
     const nombre = decodeURIComponent(req.params.nombre);
+    const viaje = sesionesViaje[nombre];
 
-    const r = await pool.query(`
-      SELECT
-        bloque,
-        variedad,
-        tamano,
-        tallos,
-        etapa,
-        COUNT(*) AS tabacos,
-        SUM(tallos) AS suma_tallos
+    if (!viaje) {
+      return res.json({ ok: true, data: [] });
+    }
 
-      FROM registros
+    const agrupado = {};
 
-      WHERE viaje = $1
+    for (const row of viaje.historialSesion || []) {
+      if (!["OK", "REREGISTRADO"].includes(row.resultado)) continue;
 
-      GROUP BY
-        bloque,
-        variedad,
-        tamano,
-        tallos,
-        etapa
+      const key = [
+        row.bloque ?? "",
+        row.variedad ?? "",
+        row.tamano ?? "",
+        row.tallos ?? "",
+        row.etapa ?? "",
+      ].join("|");
 
-      ORDER BY
-        bloque,
-        variedad
-    `, [nombre]);
+      if (!agrupado[key]) {
+        agrupado[key] = {
+          bloque: row.bloque ?? "",
+          variedad: row.variedad ?? "",
+          tamano: row.tamano ?? "",
+          tallos: row.tallos ?? "",
+          etapa: row.etapa ?? "",
+          tabacos: 0,
+          suma_tallos: 0,
+        };
+      }
 
-    return res.json({
-      ok: true,
-      data: r.rows
+      agrupado[key].tabacos += 1;
+      agrupado[key].suma_tallos += Number(row.tallos || 0);
+    }
+
+    const data = Object.values(agrupado).sort((a, b) => {
+      if (String(a.bloque) < String(b.bloque)) return -1;
+      if (String(a.bloque) > String(b.bloque)) return 1;
+      return String(a.variedad).localeCompare(String(b.variedad));
     });
 
+    res.json({ ok: true, data });
   } catch (err) {
-
-    console.error(err);
-
-    return res.status(500).json({
-      ok: false,
-      error: err.message
-    });
-
+    res.status(500).json({ ok: false, error: err.message });
   }
-
 });
 
 // =====================================================
@@ -1137,72 +1139,7 @@ app.post("/api/registros/manual", async (req, res) => {
     });
   }
 });
-// ============================================
-// VIAJE ACTIVO
-// ============================================
-app.get("/api/viaje-activo", async (req, res) => {
 
-  try {
-
-    const viajeActivo = Object.keys(sesionesViaje)
-      .find(nombre => sesionesViaje[nombre]?.activa === true);
-
-    if (!viajeActivo) {
-
-      return res.json({
-        ok: false,
-        error: "No hay viaje activo"
-      });
-
-    }
-
-    return res.json({
-      ok: true,
-      viaje: viajeActivo
-    });
-
-  } catch (err) {
-
-    console.error(err);
-
-    return res.status(500).json({
-      ok: false,
-      error: err.message
-    });
-
-  }
-
-});
-
-// ============================================
-// CONTADOR GENERAL BD
-// ============================================
-app.get("/api/contador-general", async (req, res) => {
-
-  try {
-
-    const r = await pool.query(`
-      SELECT COUNT(*) AS total
-      FROM registros
-    `);
-
-    return res.json({
-      ok: true,
-      total: Number(r.rows[0].total || 0)
-    });
-
-  } catch (err) {
-
-    console.error(err);
-
-    return res.status(500).json({
-      ok: false,
-      error: err.message
-    });
-
-  }
-
-});
 app.listen(port, () => {
   console.log(`✅ Servidor activo en http://localhost:${port}`);
 });
