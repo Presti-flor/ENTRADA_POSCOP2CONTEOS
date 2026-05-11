@@ -71,9 +71,6 @@ const cardYaRegistrados = document.getElementById("card-ya-registrados");
 const finalizarBtn = document.getElementById("finalizar-viaje-btn");
 const barcodeVisible = document.getElementById("barcode-visible");
 const cardDuplicados = document.getElementById("card-duplicados");
-
-const finalizarBtn = document.getElementById("finalizar-viaje-btn");
-const barcodeVisible = document.getElementById("barcode-visible");
 const formInput = document.getElementById("form");
 const statusBar = document.getElementById("status-bar");
 const resumenVariedadBody = document.getElementById("resumen-variedad-body");
