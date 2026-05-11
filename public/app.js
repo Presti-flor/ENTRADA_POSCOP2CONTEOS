@@ -1363,12 +1363,113 @@ if (variedadGeneralSelect) {
     await cargarDetalleGeneralPorBloque(bloque, variedad);
   });
 }
+/////////////////////// AUTOFOCUS ESCANER ///////////////////////////////
+
+function puedeRecuperarFoco() {
+
+  const activo = document.activeElement;
+
+  if (!activo) return true;
+
+  const tag = activo.tagName?.toLowerCase();
+
+  // NO ROBAR FOCO A ESTOS CONTROLES
+  if (
+    tag === "select" ||
+    tag === "textarea"
+  ) {
+    return false;
+  }
+
+  // INPUTS NORMALES
+  if (
+    tag === "input" &&
+    activo !== barcodeInput
+  ) {
+    return false;
+  }
+
+  return true;
+}
+
+function activarEscuchaScannerAutomatica() {
+
+  // FOCO INICIAL
+  setTimeout(() => {
+    focusBarcodeSeguro();
+  }, 400);
+
+  // RECUPERAR FOCO SI SE PIERDE
+  setInterval(() => {
+
+    if (escaneando) return;
+
+    if (!puedeRecuperarFoco()) return;
+
+    if (document.activeElement !== barcodeInput) {
+      focusBarcodeSeguro();
+    }
+
+  }, 1200);
+}
+
+// CLICK GENERAL
+document.addEventListener("click", (e) => {
+
+  const target = e.target;
+
+  if (!target) return;
+
+  const tag = target.tagName?.toLowerCase();
+
+  // CONTROLES QUE NO DEBEN PERDER FOCO
+  if (
+    tag === "select" ||
+    tag === "option" ||
+    tag === "button" ||
+    tag === "textarea"
+  ) {
+    return;
+  }
+
+  // INPUT NORMAL
+  if (
+    tag === "input" &&
+    target !== barcodeInput
+  ) {
+    return;
+  }
+
+  setTimeout(() => {
+
+    if (!escaneando) {
+      focusBarcodeSeguro();
+    }
+
+  }, 250);
+});
+
+// AL VOLVER A LA PESTAÑA
+document.addEventListener("visibilitychange", () => {
+
+  if (!document.hidden) {
+
+    setTimeout(() => {
+
+      if (!escaneando) {
+        focusBarcodeSeguro();
+      }
+
+    }, 300);
+  }
+});
 window.addEventListener("load", async () => {
   if (!pedirAcceso()) return;
-
+  activarEscuchaScannerAutomatica();
   await cargarContadorGeneralBD();
   await cargarBloquesGenerales();
   await cargarViajes();
+
 
   limpiarResumenViaje();
   limpiarConsultaGeneral();
