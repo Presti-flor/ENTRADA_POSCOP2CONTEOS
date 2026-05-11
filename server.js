@@ -1324,43 +1324,34 @@ app.post("/api/registros/manual", async (req, res) => {
 // =====================================================
 // RESUMEN DB DEL VIAJE ACTUAL
 // =====================================================
+// =====================================================
+// RESUMEN DB / ACUMULADO HISTÓRICO DEL VIAJE
+// Este NO se reinicia al cambiar de viaje.
+// Cuenta todo lo guardado en BD para ese viaje.
+// =====================================================
 app.get("/api/viajes/:nombre/resumen-db", async (req, res) => {
   try {
     const nombre = decodeURIComponent(req.params.nombre);
 
-    const estado = await pool.query(`
-      SELECT
-        MAX(CASE WHEN clave = 'viaje_activo' THEN valor END) AS viaje_activo,
-        MAX(CASE WHEN clave = 'viaje_activo_inicio' THEN valor END) AS inicio
-      FROM sistema_estado
-      WHERE clave IN ('viaje_activo', 'viaje_activo_inicio')
-    `);
-
-    const viajeActivoActual = estado.rows[0]?.viaje_activo;
-    const inicio = estado.rows[0]?.inicio;
-
-    if (viajeActivoActual !== nombre || !inicio) {
-      return res.json({
-        ok: true,
-        data: {
-          ok: 0,
-          reregistrados: 0
-        }
-      });
-    }
-
     const r = await pool.query(`
-      SELECT COUNT(*) AS ok
+      SELECT
+        COUNT(*) FILTER (
+          WHERE COALESCE(es_reregistro, false) = false
+        ) AS ok,
+
+        COUNT(*) FILTER (
+          WHERE COALESCE(es_reregistro, false) = true
+        ) AS reregistrados
+
       FROM registros
       WHERE viaje = $1
-        AND created_at >= $2::timestamp
-    `, [nombre, inicio]);
+    `, [nombre]);
 
     return res.json({
       ok: true,
       data: {
         ok: Number(r.rows[0]?.ok || 0),
-        reregistrados: 0
+        reregistrados: Number(r.rows[0]?.reregistrados || 0)
       }
     });
 
