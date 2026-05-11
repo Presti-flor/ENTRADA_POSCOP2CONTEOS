@@ -1359,9 +1359,41 @@ function limpiarScannerBuffer() {
     scannerTimer = null;
   }
 }
+function abrirModalYaRegistrados() {
+  if (!modalYaRegistrados || !modalYaRegistradosBody) return;
 
+  if (!cacheYaRegistrados.length) {
+    modalYaRegistradosBody.innerHTML = `
+      <div class="empty-row">No hay registros duplicados para mostrar.</div>
+    `;
+  } else {
+    modalYaRegistradosBody.innerHTML = cacheYaRegistrados.map((row) => {
+      const fecha = row.fechaAnterior
+        ? new Date(row.fechaAnterior).toLocaleString("es-CO")
+        : (row.fecha ? new Date(row.fecha).toLocaleString("es-CO") : "Fecha no disponible");
 
-const cardYaRegistrados = document.getElementById("card-ya-registrados");
+      return `
+        <div class="modal-dup-item">
+          <strong>${row.barcode}</strong>
+          <div class="modal-dup-meta">
+            <div><strong>Variedad:</strong> ${row.variedad ?? "-"}</div>
+            <div><strong>Bloque:</strong> ${row.bloque ?? "-"}</div>
+            <div><strong>Tamaño:</strong> ${row.tamano ?? "-"}</div>
+            <div><strong>Tallos:</strong> ${row.tallos ?? "-"}</div>
+            <div><strong>Fecha:</strong> ${fecha}</div>
+          </div>
+        </div>
+      `;
+    }).join("");
+  }
+
+  modalYaRegistrados.classList.add("show");
+}
+
+function cerrarModalYaRegistradosFn() {
+  if (!modalYaRegistrados) return;
+  modalYaRegistrados.classList.remove("show");
+}
 
 if (cardYaRegistrados) {
   cardYaRegistrados.addEventListener("click", () => {
