@@ -1364,6 +1364,82 @@ app.get("/api/viajes/:nombre/resumen-db", async (req, res) => {
     });
   }
 });
+
+// =====================================================
+// QUITAR UN REGISTRO MANUAL DESDE RESUMEN
+// =====================================================
+app.post("/api/registros/manual/quitar", async (req, res) => {
+  try {
+    const viaje = String(req.body.viaje || "").trim();
+    const bloque = String(req.body.bloque || "").trim();
+    const variedad = String(req.body.variedad || "").trim();
+    const tamanoRaw = String(req.body.tamano || "").trim();
+    const tallos = Number(req.body.tallos || 0);
+    const form = String(req.body.form || "").trim();
+    const etapa = String(req.body.etapa || "Ingreso").trim();
+
+    const tamanoNormalizado =
+      !tamanoRaw || tamanoRaw.toUpperCase() === "NA"
+        ? ""
+        : tamanoRaw;
+
+    if (!viaje || !bloque || !variedad || !tallos) {
+      return res.status(400).json({
+        ok: false,
+        error: "Datos incompletos para quitar registro"
+      });
+    }
+
+    const r = await pool.query(`
+      WITH registro_a_borrar AS (
+        SELECT barcode
+        FROM registros
+        WHERE viaje = $1
+          AND bloque::text = $2
+          AND LOWER(TRIM(variedad)) = LOWER(TRIM($3))
+          AND COALESCE(NULLIF(TRIM(tamano), 'NA'), '') = COALESCE(NULLIF(TRIM($4), 'NA'), '')
+          AND tallos = $5
+          AND COALESCE(TRIM(form), '') = COALESCE(TRIM($6), '')
+          AND COALESCE(TRIM(etapa), '') = COALESCE(TRIM($7), '')
+        ORDER BY created_at DESC
+        LIMIT 1
+      )
+      DELETE FROM registros
+      WHERE barcode IN (
+        SELECT barcode FROM registro_a_borrar
+      )
+      RETURNING barcode;
+    `, [
+      viaje,
+      bloque,
+      variedad,
+      tamanoNormalizado,
+      tallos,
+      form,
+      etapa
+    ]);
+
+    if (!r.rowCount) {
+      return res.status(404).json({
+        ok: false,
+        error: "No se encontró un registro para quitar"
+      });
+    }
+
+    return res.json({
+      ok: true,
+      eliminado: r.rows[0].barcode
+    });
+
+  } catch (err) {
+    console.error("Error /api/registros/manual/quitar:", err);
+
+    return res.status(500).json({
+      ok: false,
+      error: err.message
+    });
+  }
+});
 // =====================================================
 // VIAJE ACTIVO DESDE POSTGRESQL
 // ====================================================
