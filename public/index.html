@@ -43,7 +43,7 @@
   display:flex;
   flex-direction:column;
   justify-content:center;
-  gap:10px;
+  gap:12px;
 }
 
 .btn-ver-registros{
@@ -55,10 +55,6 @@
   font-weight:900;
   cursor:pointer;
   font-size:.9rem;
-}
-
-.btn-ver-registros:hover{
-  opacity:.92;
 }
 
 .btn-ocultar-registros{
@@ -410,13 +406,13 @@
     }
 
     .metric-card.main{
-      background:linear-gradient(135deg,#1d4ed8,#2563eb 60%, #3b82f6);
-      color:#fff;
-      box-shadow:0 10px 26px rgba(37,99,235,.20);
-      overflow:hidden;
-      grid-column:1 / -1;
-      min-height:140px;
-    }
+  background:linear-gradient(135deg,#1d4ed8,#2563eb 60%, #3b82f6);
+  color:#fff;
+  box-shadow:0 10px 26px rgba(37,99,235,.20);
+  overflow:hidden;
+  grid-column: span 2;
+  min-height:140px;
+}
 
     .metric-label{
       font-size:.88rem;
@@ -785,14 +781,14 @@
     }
 
     @media (max-width:820px){
-      .hero-metrics{
-        grid-template-columns:1fr;
-      }
+  .hero-metrics{
+    grid-template-columns:1fr;
+  }
 
-      .metric-card.main{
-        grid-column:auto;
-      }
-    }
+  .metric-card.main{
+    grid-column:auto;
+  }
+}
 
     @media (max-width:1100px){
       .app-shell{
@@ -911,11 +907,12 @@
 
                 <div class="hero-metrics">
                   <div class="metric-card main">
-                    <div class="metric-label">Tabacos del viaje actual</div>
-                    <div id="total-escaneados" class="metric-value">0</div>
-                    <div class="metric-sub">Registrados en este viaje</div>
-                  </div>
-                  <div class="metric-card card-ver-registros">
+  <div class="metric-label">Tabacos del viaje actual</div>
+  <div id="total-escaneados" class="metric-value">0</div>
+  <div class="metric-sub">Registrados en este viaje</div>
+</div>
+
+<div class="metric-card card-ver-registros">
   <div class="metric-label">Consulta del viaje</div>
 
   <button id="ver-registros-viaje-btn" class="btn-ver-registros">
@@ -926,13 +923,20 @@
     Ocultar registros
   </button>
 </div>
-                  <div id="status-bar" class="status-bar status-neutral" style="display:none;">
-  Último estado: listo para escanear.
-</div>
 
-                  <div class="metric-card clickable-card" id="card-ya-registrados">
+<div class="metric-card clickable-card" id="card-ya-registrados">
   <div class="metric-label">Ya registrados</div>
   <div id="total-duplicados" class="metric-value">0</div>
+</div>
+
+<div class="metric-card" id="card-errores">
+  <div class="metric-label">Errores</div>
+  <div id="total-errores" class="metric-value">0</div>
+</div>
+
+<div class="metric-card" id="card-duplicados">
+  <div class="metric-label">Acumulado del viaje</div>
+  <div id="total-acumulado-general" class="metric-value">0</div>
 </div>
 
                   <div class="metric-card" id="card-errores">
