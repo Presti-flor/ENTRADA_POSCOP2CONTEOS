@@ -34,7 +34,47 @@
   box-shadow: 0 20px 60px rgba(0,0,0,0.45);
   color: #fff;
 }
+.card-ver-registros{
+  background:linear-gradient(180deg,#151f31,#121b2c);
+  border:1px solid rgba(59,130,246,.28);
+  border-radius:22px;
+  padding:18px 16px;
+  min-height:140px;
+  display:flex;
+  flex-direction:column;
+  justify-content:center;
+  gap:10px;
+}
 
+.btn-ver-registros{
+  background:linear-gradient(135deg,#2563eb,#3b82f6);
+  color:#fff;
+  border:none;
+  border-radius:14px;
+  padding:12px 14px;
+  font-weight:900;
+  cursor:pointer;
+  font-size:.9rem;
+}
+
+.btn-ver-registros:hover{
+  opacity:.92;
+}
+
+.btn-ocultar-registros{
+  background:linear-gradient(135deg,#334155,#475569);
+  color:#fff;
+  border:none;
+  border-radius:14px;
+  padding:10px 14px;
+  font-weight:800;
+  cursor:pointer;
+  font-size:.86rem;
+}
+
+.btn-ocultar-registros:hover{
+  opacity:.92;
+}
 .modal-header {
   display: flex;
   align-items: center;
@@ -875,6 +915,17 @@
                     <div id="total-escaneados" class="metric-value">0</div>
                     <div class="metric-sub">Registrados en este viaje</div>
                   </div>
+                  <div class="metric-card card-ver-registros">
+  <div class="metric-label">Consulta del viaje</div>
+
+  <button id="ver-registros-viaje-btn" class="btn-ver-registros">
+    Ver registros de hoy
+  </button>
+
+  <button id="ocultar-registros-viaje-btn" class="btn-ocultar-registros">
+    Ocultar registros
+  </button>
+</div>
                   <div id="status-bar" class="status-bar status-neutral" style="display:none;">
   Último estado: listo para escanear.
 </div>
