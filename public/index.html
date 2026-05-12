@@ -386,12 +386,15 @@
     }
 
     .hero-metrics{
-      display:grid;
-      grid-template-columns:repeat(3, minmax(180px, 1fr));
-      gap:14px;
-      min-width:0;
-      align-items:stretch;
-    }
+  display:grid;
+  grid-template-columns:repeat(3, minmax(180px, 1fr));
+  grid-template-areas:
+    "tabacos tabacos consulta"
+    "registrados errores acumulado";
+  gap:14px;
+  min-width:0;
+  align-items:stretch;
+}
 
     .metric-card{
       background:linear-gradient(180deg,#151f31,#121b2c);
@@ -410,10 +413,25 @@
   color:#fff;
   box-shadow:0 10px 26px rgba(37,99,235,.20);
   overflow:hidden;
-  grid-column: span 2;
+  grid-column:1 / -1;
   min-height:140px;
 }
 
+    .card-ver-registros{
+  grid-area:consulta;
+}
+
+#card-ya-registrados{
+  grid-area:registrados;
+}
+
+#card-errores{
+  grid-area:errores;
+}
+
+#card-duplicados{
+  grid-area:acumulado;
+}
     .metric-label{
       font-size:.88rem;
       color:var(--muted);
@@ -783,10 +801,16 @@
     @media (max-width:820px){
   .hero-metrics{
     grid-template-columns:1fr;
+    grid-template-areas:
+      "tabacos"
+      "consulta"
+      "registrados"
+      "errores"
+      "acumulado";
   }
 
   .metric-card.main{
-    grid-column:auto;
+    grid-area:tabacos;
   }
 }
 
