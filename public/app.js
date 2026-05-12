@@ -1016,18 +1016,30 @@ function refrescarResumenPorVariedad() {
       <td class="cell-green">${item.tabacos}</td>
       <td class="cell-blue">${item.totalTallos}</td>
       <td>
-        <button
-          class="btn-add-manual"
-          data-bloque="${item.bloque}"
-          data-variedad="${item.variedad}"
-          data-tamano="${item.tamano || ""}"
-          data-tallos="${item.tallos}"
-          data-form="${item.form || ""}"
-          data-etapa="${item.etapa || "Ingreso"}"
-          data-tipo="${item.tipo || ""}"
-          title="Agregar un registro igual"
-        >+</button>
-      </td>
+  <button
+    class="btn-add-manual"
+    data-bloque="${item.bloque}"
+    data-variedad="${item.variedad}"
+    data-tamano="${item.tamano || ""}"
+    data-tallos="${item.tallos}"
+    data-form="${item.form || ""}"
+    data-etapa="${item.etapa || "Ingreso"}"
+    data-tipo="${item.tipo || ""}"
+    title="Agregar un registro igual"
+  >+</button>
+
+  <button
+    class="btn-remove-manual"
+    data-bloque="${item.bloque}"
+    data-variedad="${item.variedad}"
+    data-tamano="${item.tamano || ""}"
+    data-tallos="${item.tallos}"
+    data-form="${item.form || ""}"
+    data-etapa="${item.etapa || "Ingreso"}"
+    data-tipo="${item.tipo || ""}"
+    title="Quitar un registro igual"
+  >−</button>
+</td>
     </tr>
   `).join("");
 
@@ -1044,6 +1056,19 @@ function refrescarResumenPorVariedad() {
       });
     });
   });
+  resumenVariedadBody.querySelectorAll(".btn-remove-manual").forEach((btn) => {
+  btn.addEventListener("click", async () => {
+    await quitarRegistroManualDesdeResumen({
+      bloque: btn.dataset.bloque,
+      variedad: btn.dataset.variedad,
+      tamano: btn.dataset.tamano,
+      tallos: Number(btn.dataset.tallos || 0),
+      form: btn.dataset.form,
+      etapa: btn.dataset.etapa,
+      tipo: btn.dataset.tipo
+    });
+  });
+});
 }
 
 function badgeResultado(resultado) {
@@ -1194,6 +1219,63 @@ async function agregarRegistroManualDesdeResumen(data) {
   } catch (err) {
     console.error("Error agregando registro manual:", err);
     setStatus("Error agregando registro manual", "error");
+  }
+}
+async function quitarRegistroManualDesdeResumen(data) {
+  if (!viajeActivo) {
+    setStatus("Debes activar un viaje antes de quitar registros", "warn");
+    return;
+  }
+
+  const confirmar = confirm(
+    `¿Quitar un tabaco de ${data.variedad} / ${data.tamano || "NA"} / ${data.tallos} tallos?`
+  );
+
+  if (!confirmar) return;
+
+  try {
+    const res = await fetch("/api/registros/manual/quitar", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        viaje: viajeActivo,
+        bloque: data.bloque,
+        variedad: data.variedad,
+        tamano: data.tamano,
+        tallos: data.tallos,
+        form: data.form,
+        etapa: data.etapa || "Ingreso",
+        tipo: data.tipo
+      })
+    });
+
+    const json = await res.json();
+
+    if (!res.ok || !json.ok) {
+      setStatus(json.error || "No se pudo quitar el registro", "error");
+      return;
+    }
+
+    setStatus(
+      `Se quitó un tabaco: ${data.variedad} / ${data.tamano || "NA"} / ${data.tallos} tallos`,
+      "ok"
+    );
+
+    const actual = Number(totalEscaneados?.textContent || 0);
+    setText(totalEscaneados, Math.max(0, actual - 1));
+
+    const acumulado = Number(totalAcumuladoGeneral?.textContent || 0);
+    setAcumuladoSeguro(Math.max(0, acumulado - 1));
+
+    await conservarPosicionPantalla(async () => {
+      await refrescarTodo();
+    });
+
+  } catch (err) {
+    console.error("Error quitando registro manual:", err);
+    setStatus("Error quitando registro manual", "error");
   }
 }
 // =====================================================

@@ -388,7 +388,80 @@ app.get("/api/registro/:barcode", async (req, res) => {
     res.status(500).json({ ok: false, error: err.message });
   }
 });
+// =====================================================
+// QUITAR UN REGISTRO MANUAL DESDE RESUMEN
+// Borra el registro más reciente que coincida con viaje, bloque,
+// variedad, tamaño, tallos, form y etapa.
+// =====================================================
+app.post("/api/registros/manual/quitar", async (req, res) => {
+  try {
+    const viaje = String(req.body.viaje || "").trim();
+    const bloque = String(req.body.bloque || "").trim();
+    const variedad = String(req.body.variedad || "").trim();
+    const tamanoRaw = String(req.body.tamano || "").trim();
+    const tallos = Number(req.body.tallos || 0);
+    const form = String(req.body.form || "").trim();
+    const etapa = String(req.body.etapa || "Ingreso").trim();
 
+    const tamano = !tamanoRaw || tamanoRaw === "NA" ? null : tamanoRaw;
+
+    if (!viaje || !bloque || !variedad || !tallos) {
+      return res.status(400).json({
+        ok: false,
+        error: "Datos incompletos para quitar registro"
+      });
+    }
+
+    const r = await pool.query(`
+      WITH registro_a_borrar AS (
+        SELECT barcode
+        FROM registros
+        WHERE viaje = $1
+          AND bloque::text = $2
+          AND variedad = $3
+          AND COALESCE(tamano, '') = COALESCE($4, '')
+          AND tallos = $5
+          AND COALESCE(form, '') = COALESCE($6, '')
+          AND COALESCE(etapa, '') = COALESCE($7, '')
+        ORDER BY created_at DESC
+        LIMIT 1
+      )
+      DELETE FROM registros
+      WHERE barcode IN (
+        SELECT barcode FROM registro_a_borrar
+      )
+      RETURNING barcode;
+    `, [
+      viaje,
+      bloque,
+      variedad,
+      tamano,
+      tallos,
+      form,
+      etapa
+    ]);
+
+    if (!r.rowCount) {
+      return res.status(404).json({
+        ok: false,
+        error: "No se encontró un registro para quitar"
+      });
+    }
+
+    return res.json({
+      ok: true,
+      eliminado: r.rows[0].barcode
+    });
+
+  } catch (err) {
+    console.error("Error /api/registros/manual/quitar:", err);
+
+    return res.status(500).json({
+      ok: false,
+      error: err.message
+    });
+  }
+});
 app.listen(port, () => {
   console.log(`✅ Servidor activo en http://localhost:${port}`);
 });
