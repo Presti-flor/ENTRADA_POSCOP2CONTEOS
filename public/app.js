@@ -55,6 +55,8 @@ let cacheDetalle = [];
 let autoRefreshTimer = null;
 let escaneando = false;
 let ultimoAcumulado = null;
+let mostrandoRegistrosHistoricos = false;
+let timerOcultarRegistrosHistoricos = null;
 
 let duplicadosSesionActual = 0;
 let erroresSesionActual = 0;
@@ -535,10 +537,14 @@ function iniciarAutoRefreshViaje() {
     const y = window.scrollY;
 
     await refrescarResumen();
-    await refrescarDetalle();
-    await refrescarPivot();
-    await refrescarResumenDesdeBD();
-    await cargarContadorGeneralBD();
+
+if (!mostrandoRegistrosHistoricos) {
+  await refrescarDetalle();
+}
+
+await refrescarPivot();
+await refrescarResumenDesdeBD();
+await cargarContadorGeneralBD();
 
     window.scrollTo(x, y);
 
@@ -584,6 +590,12 @@ async function activarViaje(nombre) {
     viajeActivo = viajeNombre;
     guardarEstadoUI();
     detenerAutoRefreshViaje();
+    mostrandoRegistrosHistoricos = false;
+
+if (timerOcultarRegistrosHistoricos) {
+  clearTimeout(timerOcultarRegistrosHistoricos);
+  timerOcultarRegistrosHistoricos = null;
+}
 
     document.querySelectorAll(".btn-viaje").forEach((b) => {
       b.classList.remove("activo");
@@ -1501,6 +1513,11 @@ async function cargarRegistrosHistoricosDelViajeHoy() {
   }
 
   try {
+    if (timerOcultarRegistrosHistoricos) {
+      clearTimeout(timerOcultarRegistrosHistoricos);
+      timerOcultarRegistrosHistoricos = null;
+    }
+
     const res = await fetch(
       `/api/viajes/${encodeURIComponent(viajeActivo)}/detalle-hoy`
     );
@@ -1512,12 +1529,18 @@ async function cargarRegistrosHistoricosDelViajeHoy() {
       return;
     }
 
+    mostrandoRegistrosHistoricos = true;
+
     cacheDetalle = json.data || [];
 
     renderDetalle(cacheDetalle);
     refrescarResumenPorVariedad();
 
-    setStatus(`Registros cargados para ${viajeActivo}`, "ok");
+    setStatus(`Registros visibles por 6 segundos para ${viajeActivo}`, "ok");
+
+    timerOcultarRegistrosHistoricos = setTimeout(() => {
+      ocultarRegistrosHistoricosDelViaje();
+    }, 6000);
 
   } catch (err) {
     console.error("Error cargando registros del viaje:", err);
@@ -1526,6 +1549,13 @@ async function cargarRegistrosHistoricosDelViajeHoy() {
 }
 
 function ocultarRegistrosHistoricosDelViaje() {
+  mostrandoRegistrosHistoricos = false;
+
+  if (timerOcultarRegistrosHistoricos) {
+    clearTimeout(timerOcultarRegistrosHistoricos);
+    timerOcultarRegistrosHistoricos = null;
+  }
+
   cacheDetalle = [];
 
   if (detalleBody) {
@@ -1544,7 +1574,7 @@ function ocultarRegistrosHistoricosDelViaje() {
     `;
   }
 
-  setStatus("Registros ocultos. El viaje sigue activo.", "neutral");
+  setStatus("Registros ocultos.", "neutral");
 }
 async function eliminarRegistro(idLocal) {
   if (!viajeActivo) return;
