@@ -1438,6 +1438,53 @@ app.post("/api/registros/manual/quitar", async (req, res) => {
     });
   }
 });
+
+// =====================================================
+// DETALLE DEL VIAJE DEL DÍA ACTUAL
+// Sirve para volver a ver registros anteriores del viaje
+// sin afectar los contadores de sesión
+// =====================================================
+app.get("/api/viajes/:nombre/detalle-hoy", async (req, res) => {
+  try {
+    const nombre = decodeURIComponent(req.params.nombre);
+
+    const r = await pool.query(`
+      SELECT
+        barcode,
+        tipo,
+        serial,
+        variedad,
+        bloque,
+        tamano,
+        tallos,
+        etapa,
+        form,
+        form_id,
+        viaje,
+        created_at AS fecha,
+        'OK' AS resultado
+      FROM registros
+      WHERE viaje = $1
+        AND (created_at AT TIME ZONE 'America/Bogota')::date =
+            (NOW() AT TIME ZONE 'America/Bogota')::date
+      ORDER BY created_at DESC
+      LIMIT 1000
+    `, [nombre]);
+
+    return res.json({
+      ok: true,
+      data: r.rows
+    });
+
+  } catch (err) {
+    console.error("Error /api/viajes/:nombre/detalle-hoy:", err);
+
+    return res.status(500).json({
+      ok: false,
+      error: err.message
+    });
+  }
+});
 // =====================================================
 // VIAJE ACTIVO DESDE POSTGRESQL
 // ====================================================
