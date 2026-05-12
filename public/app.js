@@ -1715,7 +1715,7 @@ if (ocultarRegistrosViajeBtn) {
   ocultarRegistrosViajeBtn.addEventListener("click", () => {
     ocultarRegistrosHistoricosDelViaje();
   });
-}s
+}
 
 
 if (variedadGeneralSelect) {
