@@ -384,6 +384,30 @@
       color:var(--muted);
       font-size:.95rem;
     }
+    .card-ver-registros{
+  grid-area:consulta;
+  background:linear-gradient(180deg,#151f31,#121b2c);
+  border:1px solid rgba(59,130,246,.28);
+  border-radius:22px;
+  padding:18px 16px;
+  min-height:140px;
+  display:flex;
+  flex-direction:column;
+  justify-content:center;
+  gap:12px;
+}
+
+#card-ya-registrados{
+  grid-area:registrados;
+}
+
+#card-errores{
+  grid-area:errores;
+}
+
+#card-duplicados{
+  grid-area:acumulado;
+}
 
     .hero-metrics{
   display:grid;
@@ -413,8 +437,8 @@
   color:#fff;
   box-shadow:0 10px 26px rgba(37,99,235,.20);
   overflow:hidden;
-  grid-column:1 / -1;
   min-height:140px;
+  grid-area:tabacos;
 }
 
     .card-ver-registros{
