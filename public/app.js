@@ -1454,8 +1454,7 @@ if (barcodeInput) {
 
     encolarCodigo(codigo);
   });
-}
-async function refrescarDetalle() {
+}async function refrescarDetalle() {
   if (!detalleBody) return;
 
   if (!viajeActivo) {
@@ -1484,11 +1483,14 @@ async function refrescarDetalle() {
 
     cacheDetalle = json.data || [];
 
-renderDetalle(cacheDetalle);
-refrescarResumenPorVariedad();
+    renderDetalle(cacheDetalle);
+    refrescarResumenPorVariedad();
+
   } catch (err) {
     console.error("Error refrescando detalle:", err);
   }
+}
+
 // =====================================================
 // VER / OCULTAR REGISTROS DEL VIAJE DEL DÍA
 // =====================================================
@@ -1544,60 +1546,6 @@ function ocultarRegistrosHistoricosDelViaje() {
 
   setStatus("Registros ocultos. El viaje sigue activo.", "neutral");
 }
-async function cargarRegistrosHistoricosDelViajeHoy() {
-  if (!viajeActivo) {
-    setStatus("Debes activar un viaje para consultar sus registros", "warn");
-    return;
-  }
-
-  try {
-    const res = await fetch(
-      `/api/viajes/${encodeURIComponent(viajeActivo)}/detalle-hoy`
-    );
-
-    const json = await res.json();
-
-    if (!res.ok || !json.ok) {
-      setStatus(json.error || "No se pudieron cargar los registros del viaje", "error");
-      return;
-    }
-
-    cacheDetalle = json.data || [];
-
-    renderDetalle(cacheDetalle);
-    refrescarResumenPorVariedad();
-
-    setStatus(`Registros cargados para ${viajeActivo}`, "ok");
-
-  } catch (err) {
-    console.error("Error cargando registros del viaje:", err);
-    setStatus("Error cargando registros del viaje", "error");
-  }
-}
-
-function ocultarRegistrosHistoricosDelViaje() {
-  cacheDetalle = [];
-
-  if (detalleBody) {
-    detalleBody.innerHTML = `
-      <tr>
-        <td colspan="11" class="empty-row">Sin registros visibles.</td>
-      </tr>
-    `;
-  }
-
-  if (resumenVariedadBody) {
-    resumenVariedadBody.innerHTML = `
-      <tr>
-        <td colspan="6" class="empty-row">Sin registros por variedad.</td>
-      </tr>
-    `;
-  }
-
-  setStatus("Registros ocultos. El viaje sigue activo.", "neutral");
-}
-}
-
 async function eliminarRegistro(idLocal) {
   if (!viajeActivo) return;
 
