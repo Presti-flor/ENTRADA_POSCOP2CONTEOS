@@ -393,6 +393,9 @@ app.get("/api/registro/:barcode", async (req, res) => {
 // Borra el registro más reciente que coincida con viaje, bloque,
 // variedad, tamaño, tallos, form y etapa.
 // =====================================================
+// =====================================================
+// QUITAR UN REGISTRO MANUAL DESDE RESUMEN
+// =====================================================
 app.post("/api/registros/manual/quitar", async (req, res) => {
   try {
     const viaje = String(req.body.viaje || "").trim();
@@ -417,7 +420,7 @@ app.post("/api/registros/manual/quitar", async (req, res) => {
 
     const r = await pool.query(`
       WITH registro_a_borrar AS (
-        SELECT id
+        SELECT barcode
         FROM registros
         WHERE viaje = $1
           AND bloque::text = $2
@@ -430,8 +433,8 @@ app.post("/api/registros/manual/quitar", async (req, res) => {
         LIMIT 1
       )
       DELETE FROM registros
-      WHERE id IN (
-        SELECT id FROM registro_a_borrar
+      WHERE barcode IN (
+        SELECT barcode FROM registro_a_borrar
       )
       RETURNING barcode;
     `, [
