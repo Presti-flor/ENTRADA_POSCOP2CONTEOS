@@ -260,17 +260,6 @@ app.post("/api/escanear", async (req, res) => {
 // =====================================================
 // RESUMEN DEL VIAJE
 // =====================================================
-<div style="margin-top:14px; display:flex; gap:10px; flex-wrap:wrap;">
-  <button id="ver-registros-viaje-btn" class="btn-primary">
-    Ver registros del viaje hoy
-  </button>
-
-  <button id="ocultar-registros-viaje-btn" class="btn-finalizar">
-    Ocultar registros
-  </button>
-</div>
-
-
 app.get("/api/viajes/:nombre/resumen", async (req, res) => {
   try {
     const nombre = decodeURIComponent(req.params.nombre);
