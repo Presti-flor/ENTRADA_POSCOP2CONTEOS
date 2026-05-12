@@ -1329,29 +1329,27 @@ app.post("/api/registros/manual", async (req, res) => {
 // Este NO se reinicia al cambiar de viaje.
 // Cuenta todo lo guardado en BD para ese viaje.
 // =====================================================
+// =====================================================
+// RESUMEN DB / ACUMULADO DEL VIAJE SOLO DEL DÍA ACTUAL
+// Se reinicia automáticamente cada día
+// =====================================================
 app.get("/api/viajes/:nombre/resumen-db", async (req, res) => {
   try {
     const nombre = decodeURIComponent(req.params.nombre);
 
     const r = await pool.query(`
-      SELECT
-        COUNT(*) FILTER (
-          WHERE COALESCE(es_reregistro, false) = false
-        ) AS ok,
-
-        COUNT(*) FILTER (
-          WHERE COALESCE(es_reregistro, false) = true
-        ) AS reregistrados
-
+      SELECT COUNT(*) AS total
       FROM registros
       WHERE viaje = $1
+        AND created_at >= CURRENT_DATE
+        AND created_at < CURRENT_DATE + INTERVAL '1 day'
     `, [nombre]);
 
     return res.json({
       ok: true,
       data: {
-        ok: Number(r.rows[0]?.ok || 0),
-        reregistrados: Number(r.rows[0]?.reregistrados || 0)
+        ok: Number(r.rows[0]?.total || 0),
+        reregistrados: 0
       }
     });
 
