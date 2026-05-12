@@ -1227,12 +1227,6 @@ async function quitarRegistroManualDesdeResumen(data) {
     return;
   }
 
-  const confirmar = confirm(
-    `¿Quitar un tabaco de ${data.variedad} / ${data.tamano || "NA"} / ${data.tallos} tallos?`
-  );
-
-  if (!confirmar) return;
-
   try {
     const res = await fetch("/api/registros/manual/quitar", {
       method: "POST",
@@ -1258,19 +1252,25 @@ async function quitarRegistroManualDesdeResumen(data) {
       return;
     }
 
+    // Actualiza contador principal de inmediato
+    const actual = Number(totalEscaneados?.textContent || 0);
+    setText(totalEscaneados, Math.max(0, actual - 1));
+
+    // Actualiza acumulado de inmediato
+    const acumulado = Number(totalAcumuladoGeneral?.textContent || 0);
+    setAcumuladoSeguro(Math.max(0, acumulado - 1));
+
     setStatus(
       `Se quitó un tabaco: ${data.variedad} / ${data.tamano || "NA"} / ${data.tallos} tallos`,
       "ok"
     );
 
-    const actual = Number(totalEscaneados?.textContent || 0);
-    setText(totalEscaneados, Math.max(0, actual - 1));
-
-    const acumulado = Number(totalAcumuladoGeneral?.textContent || 0);
-    setAcumuladoSeguro(Math.max(0, acumulado - 1));
-
+    // Refresco real desde BD para actualizar tabla, totales y detalle
     await conservarPosicionPantalla(async () => {
-      await refrescarTodo();
+      await refrescarDetalle();
+      await refrescarPivot();
+      await refrescarResumenDesdeBD();
+      await cargarContadorGeneralBD();
     });
 
   } catch (err) {

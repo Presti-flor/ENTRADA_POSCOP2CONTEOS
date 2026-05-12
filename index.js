@@ -403,7 +403,10 @@ app.post("/api/registros/manual/quitar", async (req, res) => {
     const form = String(req.body.form || "").trim();
     const etapa = String(req.body.etapa || "Ingreso").trim();
 
-    const tamano = !tamanoRaw || tamanoRaw === "NA" ? null : tamanoRaw;
+    const tamanoNormalizado =
+      !tamanoRaw || tamanoRaw.toUpperCase() === "NA"
+        ? ""
+        : tamanoRaw;
 
     if (!viaje || !bloque || !variedad || !tallos) {
       return res.status(400).json({
@@ -414,28 +417,28 @@ app.post("/api/registros/manual/quitar", async (req, res) => {
 
     const r = await pool.query(`
       WITH registro_a_borrar AS (
-        SELECT barcode
+        SELECT id
         FROM registros
         WHERE viaje = $1
           AND bloque::text = $2
-          AND variedad = $3
-          AND COALESCE(tamano, '') = COALESCE($4, '')
+          AND LOWER(TRIM(variedad)) = LOWER(TRIM($3))
+          AND COALESCE(NULLIF(TRIM(tamano), 'NA'), '') = COALESCE(NULLIF(TRIM($4), 'NA'), '')
           AND tallos = $5
-          AND COALESCE(form, '') = COALESCE($6, '')
-          AND COALESCE(etapa, '') = COALESCE($7, '')
+          AND COALESCE(TRIM(form), '') = COALESCE(TRIM($6), '')
+          AND COALESCE(TRIM(etapa), '') = COALESCE(TRIM($7), '')
         ORDER BY created_at DESC
         LIMIT 1
       )
       DELETE FROM registros
-      WHERE barcode IN (
-        SELECT barcode FROM registro_a_borrar
+      WHERE id IN (
+        SELECT id FROM registro_a_borrar
       )
       RETURNING barcode;
     `, [
       viaje,
       bloque,
       variedad,
-      tamano,
+      tamanoNormalizado,
       tallos,
       form,
       etapa
