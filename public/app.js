@@ -98,6 +98,15 @@ const variedadGeneralSelect = document.getElementById("variedad-general-select")
 const generalBloqueBody = document.getElementById("general-bloque-body");
 const generalBloqueDetalleBody = document.getElementById("general-bloque-detalle-body");
 
+const btnToggleDetalle = $("btnToggleDetalle");
+const detalleFiltroBox = $("detalleFiltroBox");
+
+if (btnToggleDetalle && detalleFiltroBox) {
+  btnToggleDetalle.addEventListener("click", () => {
+    const isOpen = detalleFiltroBox.classList.toggle("open");
+    btnToggleDetalle.textContent = isOpen ? "Ocultar detalle" : "Mostrar detalle";
+  });
+}
 
 
 function setText(el, value) {
