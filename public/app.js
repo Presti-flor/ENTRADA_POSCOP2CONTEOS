@@ -98,13 +98,13 @@ const variedadGeneralSelect = document.getElementById("variedad-general-select")
 const generalBloqueBody = document.getElementById("general-bloque-body");
 const generalBloqueDetalleBody = document.getElementById("general-bloque-detalle-body");
 
-const btnToggleDetalle = $("btnToggleDetalle");
-const detalleFiltroBox = $("detalleFiltroBox");
+const btnToggleDetalleFiltro = document.getElementById("btnToggleDetalleFiltro");
+const detalleFiltroBox = document.getElementById("detalleFiltroBox");
 
-if (btnToggleDetalle && detalleFiltroBox) {
-  btnToggleDetalle.addEventListener("click", () => {
+if (btnToggleDetalleFiltro && detalleFiltroBox) {
+  btnToggleDetalleFiltro.addEventListener("click", () => {
     const isOpen = detalleFiltroBox.classList.toggle("open");
-    btnToggleDetalle.textContent = isOpen ? "Ocultar detalle" : "Mostrar detalle";
+    btnToggleDetalleFiltro.textContent = isOpen ? "Ocultar detalle" : "Mostrar detalle";
   });
 }
 

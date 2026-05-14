@@ -967,10 +967,6 @@
               </section>
             </div>
 
-            <button id="btnToggleDetalle" class="toggleBtn" type="button">
-  Mostrar detalle
-</button>
-
             <div class="right-stack">
               <section class="card">
                 <h2>Resumen del viaje</h2>
@@ -1010,15 +1006,14 @@
 </div>
 
                   <div class="metric-card" id="card-errores">
-                    <div class="metric-label">Errores</div>
-                    <div id="total-errores" class="metric-value">0</div>
-                  </div>
+  <div class="metric-label">Errores</div>
+  <div id="total-errores" class="metric-value">0</div>
+</div>
 
-                  <div class="metric-card" id="card-duplicados">
-                    <div class="metric-label">Acumulado del viaje</div>
-                    <div id="total-acumulado-general" class="metric-value">0</div>
-                  </div>
-                </div>
+<div class="metric-card" id="card-duplicados">
+  <div class="metric-label">Acumulado del viaje</div>
+  <div id="total-acumulado-general" class="metric-value">0</div>
+</div>
 
                 <div style="margin-top:16px;" class="table-wrap">
                   <table>
@@ -1123,13 +1118,14 @@
             </div>
 
             <div class="split" style="margin-top:12px;">
-  <div class="pill">Detalle por filtro</div>
-  <button id="btnToggleDetalle" class="ghost" type="button" style="width:auto;padding:8px 14px;">
+  <div class="section-title" style="margin-bottom:0;">Detalle por filtro</div>
+
+  <button id="btnToggleDetalleFiltro" class="toggleBtn" type="button">
     Mostrar detalle
   </button>
 </div>
 
-<div id="detalleFiltroBox" class="scroll collapsedBox" style="margin-top:8px;">
+<div id="detalleFiltroBox" class="table-wrap collapsedBox" style="margin-top:8px;">
   <table>
     <thead>
       <tr>
@@ -1148,7 +1144,12 @@
         <th>Acción</th>
       </tr>
     </thead>
-    <tbody id="tbDetalleFiltro"></tbody>
+
+    <tbody id="general-bloque-detalle-body">
+      <tr>
+        <td colspan="13" class="empty-row">Sin datos para mostrar.</td>
+      </tr>
+    </tbody>
   </table>
 </div>
           </section>
