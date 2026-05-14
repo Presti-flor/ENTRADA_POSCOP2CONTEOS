@@ -1927,6 +1927,37 @@ document.addEventListener("visibilitychange", () => {
     }, 300);
   }
 });
+
+async function activarViajeInicialAutomatico() {
+  const contenedor = document.getElementById("viajes-botones");
+  if (!contenedor) return;
+
+  const botones = Array.from(contenedor.querySelectorAll(".btn-viaje"));
+
+  if (!botones.length) {
+    limpiarResumenViaje();
+    return;
+  }
+
+  // Busca específicamente el viaje 1
+  const botonViaje1 = botones.find((btn) => {
+    const texto = String(btn.textContent || "").trim().toLowerCase();
+    return texto === "viaje 1" || texto === "1" || texto.includes("viaje 1");
+  });
+
+  // Si existe Viaje 1, activa ese. Si no existe, activa el primero disponible.
+  const botonSeleccionado = botonViaje1 || botones[0];
+
+  const nombreViaje = String(botonSeleccionado.textContent || "").trim();
+
+  if (!nombreViaje) {
+    limpiarResumenViaje();
+    return;
+  }
+
+  await activarViaje(nombreViaje);
+}
+
 window.addEventListener("load", async () => {
 
   if (!pedirAcceso()) return;
@@ -1950,6 +1981,8 @@ window.addEventListener("load", async () => {
   await cargarBloquesGenerales();
   await cargarViajes();
 
-  limpiarResumenViaje();
   limpiarConsultaGeneral();
+
+  // Activa automáticamente el Viaje 1 al ingresar
+  await activarViajeInicialAutomatico();
 });
