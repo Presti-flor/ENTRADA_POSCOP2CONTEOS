@@ -555,6 +555,14 @@ await refrescarPivot();
 await refrescarResumenDesdeBD();
 await cargarContadorGeneralBD();
 
+const bloque = bloqueGeneralSelect?.value || "";
+const variedad = variedadGeneralSelect?.value || "";
+
+if (bloque) {
+  await cargarResumenGeneralPorBloque(bloque, variedad);
+  await cargarDetalleGeneralPorBloque(bloque, variedad);
+}
+
     window.scrollTo(x, y);
 
     requestAnimationFrame(() => {
@@ -808,6 +816,35 @@ setTimeout(() => {
     await refrescarDetalle();
     await refrescarResumenDesdeBD();
     await cargarContadorGeneralBD();
+
+    // Actualiza selects de consulta general
+    const bloqueSeleccionado = bloqueGeneralSelect?.value || "";
+    const variedadSeleccionada = variedadGeneralSelect?.value || "";
+
+    await cargarBloquesGenerales();
+
+    if (bloqueSeleccionado) {
+      bloqueGeneralSelect.value = bloqueSeleccionado;
+
+      await cargarVariedadesGeneralesPorBloque(
+        bloqueSeleccionado,
+        variedadSeleccionada
+      );
+
+      if (variedadSeleccionada) {
+        variedadGeneralSelect.value = variedadSeleccionada;
+      }
+
+      await cargarResumenGeneralPorBloque(
+        bloqueSeleccionado,
+        variedadSeleccionada
+      );
+
+      await cargarDetalleGeneralPorBloque(
+        bloqueSeleccionado,
+        variedadSeleccionada
+      );
+    }
   });
 }, 250);
   } catch (error) {
